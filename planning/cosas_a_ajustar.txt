@@ -1,0 +1,11 @@
+must
+
+
+backlog
+    identificar en FP qualy laps de race simulations para progresion de tiempos
+    posicion virtual con pit windows
+    drivers to watch
+        eventos relacionados (mejoras/empeoras significativos de intervalo)
+    pit stop times
+    incorporar datos de f2 y f3
+
