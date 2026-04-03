@@ -3,7 +3,7 @@
 **Iteración**: 0
 **Prioridad**: Crítica
 **Dependencias**: EP-01 (bridge + WsClient + repositorios)
-**Estado**: Pendiente
+**Estado**: Finalizado
 
 ## Descripción
 Lógica de backend del viewer en vivo: consumir los mensajes del bridge, mantener el estado de la sesión actualizado y distribuirlo a los browsers via SSE. Todo el estado viene de la DB — el bridge la alimenta en vivo, los repositorios la consultan al arrancar.
