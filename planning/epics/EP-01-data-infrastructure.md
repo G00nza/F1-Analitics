@@ -73,10 +73,10 @@ websockets>=12.0
 ```
 
 **Criterios de aceptación:**
-- [ ] Reconexión automática si el F1 timing server cierra la conexión (~2h)
-- [ ] Múltiples clientes Kotlin conectados al mismo tiempo
-- [ ] Termina limpiamente con `SIGTERM`
-- [ ] `CarData.z` y `Position.z` ya llegan descomprimidos (FastF1 lo hace internamente)
+- [x] Reconexión automática si el F1 timing server cierra la conexión (~2h)
+- [x] Múltiples clientes Kotlin conectados al mismo tiempo
+- [x] Termina limpiamente con `SIGTERM`
+- [x] `CarData.z` y `Position.z` ya llegan descomprimidos (FastF1 lo hace internamente)
 
 ---
 
@@ -122,12 +122,12 @@ sealed class TimingMessage {
     data class SessionStatusMsg(val status: String) : TimingMessage()
     data class DriverListMsg(val drivers: Map<String, DriverEntry>) : TimingMessage()
     data class TimingDataMsg(val deltas: Map<String, DriverTimingDelta>) : TimingMessage()
-    data class TimingAppDataMsg(val deltas: Map<String, DriverAppDelta>) : TimingMessage()
+    data class TimingAppDataMsg(val deltas: Map<String, DriverTireStintDelta>) : TimingMessage()
     data class TrackStatusMsg(val status: String, val message: String) : TimingMessage()
     data class RaceControlMsg(val message: String, val flag: String?,
                                val scope: String?, val lap: Int?) : TimingMessage()
     data class WeatherMsg(val weather: WeatherData) : TimingMessage()
-    data class CarDataMsg(val entries: List<CarDataEntry>) : TimingMessage()
+    data class CarDataMsg(val entries: List<CarTelemetryEntry>) : TimingMessage()
     data class PositionMsg(val entries: List<PositionEntry>) : TimingMessage()
     data class ExtrapolatedClockMsg(val remaining: Duration?, val extrapolating: Boolean) : TimingMessage()
     data class LapCountMsg(val current: Int, val total: Int?) : TimingMessage()
@@ -136,9 +136,9 @@ sealed class TimingMessage {
 ```
 
 **Criterios de aceptación:**
-- [ ] Reconexión automática con retry cada 3s
-- [ ] Buffer de 2000 mensajes — si la DB es lenta, no se pierden mensajes
-- [ ] Mensajes no parseables se logean como WARN y se descartan (no crashean)
+- [x] Reconexión automática con retry cada 3s
+- [x] Buffer de 2000 mensajes — si la DB es lenta, no se pierden mensajes
+- [x] Mensajes no parseables se logean como WARN y se descartan (no crashean)
 
 ---
 
@@ -359,7 +359,7 @@ interface LapRepository {
 }
 
 interface StintRepository {
-    suspend fun upsertDeltas(sessionKey: Int, deltas: Map<String, DriverAppDelta>)
+    suspend fun upsertDeltas(sessionKey: Int, deltas: Map<String, DriverTireStintDelta>)
     suspend fun findBySession(sessionKey: Int): List<Stint>
     suspend fun findCurrentStint(sessionKey: Int, driverNumber: String): Stint?
 }
