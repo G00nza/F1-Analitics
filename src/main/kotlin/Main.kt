@@ -2,6 +2,9 @@ package com.f1analytics
 
 import com.f1analytics.api.SseManager
 import com.f1analytics.api.liveSessionRoutes
+import com.f1analytics.api.views.LatestSessionView
+import com.f1analytics.api.views.LiveEventView
+import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.core.config.AppConfig
 import com.f1analytics.core.service.LiveSessionService
 import com.f1analytics.core.service.LiveSessionStateManager
@@ -112,7 +115,11 @@ fun main() = runBlocking {
         install(ContentNegotiation) { json() }
 
         routing {
-            liveSessionRoutes(sseManager, sessionResolver, replayRepo)
+            liveSessionRoutes(
+                LiveEventView(sseManager),
+                ReplayEventView(replayRepo),
+                LatestSessionView(sessionResolver)
+            )
         }
     }.start(wait = true)
 }
