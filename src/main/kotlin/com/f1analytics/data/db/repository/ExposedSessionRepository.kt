@@ -6,8 +6,13 @@ import com.f1analytics.core.domain.port.SessionRepository
 import com.f1analytics.data.db.tables.SessionsTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlin.time.Duration.Companion.hours
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ExposedSessionRepository(private val db: Database) : SessionRepository {
@@ -64,6 +69,46 @@ class ExposedSessionRepository(private val db: Database) : SessionRepository {
             }
         }
         Unit
+    }
+
+    override suspend fun findActive(): Session? = withContext(Dispatchers.IO) {
+        transaction(db) {
+            SessionsTable.selectAll()
+                .where { SessionsTable.status eq "Started" }
+                .firstOrNull()
+                ?.toSession()
+        }
+    }
+
+    override suspend fun findMostRecent(): Session? = withContext(Dispatchers.IO) {
+        val fourHoursAgo = Clock.System.now().minus(4.hours)
+        transaction(db) {
+            SessionsTable.selectAll()
+                .where {
+                    SessionsTable.recorded eq true and (
+                        SessionsTable.dateEnd.isNull() or
+                        (SessionsTable.dateEnd greaterEq fourHoursAgo)
+                    )
+                }
+                .orderBy(SessionsTable.dateStart, SortOrder.DESC_NULLS_LAST)
+                .firstOrNull()
+                ?.toSession()
+        }
+    }
+
+    override suspend fun findNextUpcoming(): Session? = withContext(Dispatchers.IO) {
+        val now = Clock.System.now()
+        transaction(db) {
+            SessionsTable.selectAll()
+                .where {
+                    SessionsTable.dateStart.isNotNull() and
+                    (SessionsTable.dateStart greater now) and
+                    (SessionsTable.status.isNull() or (SessionsTable.status neq "Finished"))
+                }
+                .orderBy(SessionsTable.dateStart, SortOrder.ASC_NULLS_LAST)
+                .firstOrNull()
+                ?.toSession()
+        }
     }
 }
 

@@ -1,13 +1,13 @@
 package com.f1analytics.data.db.repository
 
+import com.f1analytics.core.domain.model.RaceControlEntry
 import com.f1analytics.core.domain.model.TimingMessage
 import com.f1analytics.core.domain.port.RaceControlRepository
 import com.f1analytics.data.db.tables.RaceControlMessagesTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ExposedRaceControlRepository(private val db: Database) : RaceControlRepository {
@@ -29,4 +29,22 @@ class ExposedRaceControlRepository(private val db: Database) : RaceControlReposi
         }
         Unit
     }
+
+    override suspend fun findBySession(sessionKey: Int): List<RaceControlEntry> =
+        withContext(Dispatchers.IO) {
+            transaction(db) {
+                RaceControlMessagesTable.selectAll()
+                    .where { RaceControlMessagesTable.sessionKey eq sessionKey }
+                    .orderBy(RaceControlMessagesTable.timestamp, SortOrder.ASC)
+                    .map { row ->
+                        RaceControlEntry(
+                            message   = row[RaceControlMessagesTable.message],
+                            flag      = row[RaceControlMessagesTable.flag],
+                            scope     = row[RaceControlMessagesTable.scope],
+                            lap       = row[RaceControlMessagesTable.lapNumber],
+                            timestamp = row[RaceControlMessagesTable.timestamp]
+                        )
+                    }
+            }
+        }
 }

@@ -20,6 +20,9 @@ class LiveTimingPersistenceServiceTest {
         override suspend fun findByKey(key: Int): Session? = null
         override suspend fun findByYearAndType(year: Int, type: SessionType) = emptyList<Session>()
         override suspend fun findLastRecorded(): Session? = null
+        override suspend fun findActive(): Session? = null
+        override suspend fun findMostRecent(): Session? = null
+        override suspend fun findNextUpcoming(): Session? = null
     }
 
     private class FakeSessionDriverRepository : SessionDriverRepository {
@@ -58,6 +61,7 @@ class LiveTimingPersistenceServiceTest {
         override suspend fun insert(sessionKey: Int, msg: TimingMessage.RaceControlMsg, timestamp: Instant) {
             insertCalls += Triple(sessionKey, msg, timestamp)
         }
+        override suspend fun findBySession(sessionKey: Int): List<RaceControlEntry> = emptyList()
     }
 
     private class FakeWeatherRepository : WeatherRepository {
@@ -65,6 +69,7 @@ class LiveTimingPersistenceServiceTest {
         override suspend fun insert(sessionKey: Int, weather: WeatherData, timestamp: Instant) {
             insertCalls += Triple(sessionKey, weather, timestamp)
         }
+        override suspend fun findLatest(sessionKey: Int): WeatherData? = null
     }
 
     private class FakePositionRepository : PositionRepository {
@@ -72,6 +77,7 @@ class LiveTimingPersistenceServiceTest {
         override suspend fun insertSnapshot(sessionKey: Int, deltas: Map<String, DriverTimingDelta>, timestamp: Instant) {
             insertSnapshotCalls += Triple(sessionKey, deltas, timestamp)
         }
+        override suspend fun findLatestPositions(sessionKey: Int): Map<String, DriverPositionSnapshot> = emptyMap()
     }
 
     private class FakeTelemetryRepository : TelemetryRepository {
@@ -199,6 +205,7 @@ class LiveTimingPersistenceServiceTest {
             override suspend fun insert(sessionKey: Int, weather: WeatherData, timestamp: Instant) {
                 throw RuntimeException("DB connection lost")
             }
+            override suspend fun findLatest(sessionKey: Int): WeatherData? = null
         }
         val svc = LiveTimingPersistenceService(
             sessionRepo, driverRepo, lapRepo, stintRepo, pitRepo,

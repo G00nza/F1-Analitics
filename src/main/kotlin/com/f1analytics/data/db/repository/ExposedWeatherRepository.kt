@@ -6,8 +6,7 @@ import com.f1analytics.data.db.tables.WeatherSnapshotsTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ExposedWeatherRepository(private val db: Database) : WeatherRepository {
@@ -32,4 +31,25 @@ class ExposedWeatherRepository(private val db: Database) : WeatherRepository {
         }
         Unit
     }
+
+    override suspend fun findLatest(sessionKey: Int): WeatherData? =
+        withContext(Dispatchers.IO) {
+            transaction(db) {
+                WeatherSnapshotsTable.selectAll()
+                    .where { WeatherSnapshotsTable.sessionKey eq sessionKey }
+                    .orderBy(WeatherSnapshotsTable.timestamp, SortOrder.DESC)
+                    .firstOrNull()
+                    ?.let { row ->
+                        WeatherData(
+                            airTemp       = row[WeatherSnapshotsTable.airTemp],
+                            trackTemp     = row[WeatherSnapshotsTable.trackTemp],
+                            humidity      = row[WeatherSnapshotsTable.humidity],
+                            pressure      = row[WeatherSnapshotsTable.pressure],
+                            windSpeed     = row[WeatherSnapshotsTable.windSpeed],
+                            windDirection = row[WeatherSnapshotsTable.windDirection],
+                            rainfall      = row[WeatherSnapshotsTable.rainfall]
+                        )
+                    }
+            }
+        }
 }

@@ -1,13 +1,13 @@
 package com.f1analytics.data.db.repository
 
 import com.f1analytics.core.domain.model.DriverTimingDelta
+import com.f1analytics.core.domain.port.DriverPositionSnapshot
 import com.f1analytics.core.domain.port.PositionRepository
 import com.f1analytics.data.db.tables.PositionSnapshotsTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.batchInsert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class ExposedPositionRepository(private val db: Database) : PositionRepository {
@@ -35,4 +35,25 @@ class ExposedPositionRepository(private val db: Database) : PositionRepository {
         }
         Unit
     }
+
+    override suspend fun findLatestPositions(sessionKey: Int): Map<String, DriverPositionSnapshot> =
+        withContext(Dispatchers.IO) {
+            transaction(db) {
+                // Fetch all snapshots ordered DESC by timestamp; take the first per driver.
+                PositionSnapshotsTable.selectAll()
+                    .where { PositionSnapshotsTable.sessionKey eq sessionKey }
+                    .orderBy(PositionSnapshotsTable.timestamp, SortOrder.DESC)
+                    .toList()
+                    .groupBy { it[PositionSnapshotsTable.driverNumber] }
+                    .mapValues { (driverNum, rows) ->
+                        val latest = rows.first()
+                        DriverPositionSnapshot(
+                            driverNumber = driverNum,
+                            position     = latest[PositionSnapshotsTable.position],
+                            gapToLeader  = latest[PositionSnapshotsTable.gapToLeader],
+                            interval     = latest[PositionSnapshotsTable.interval]
+                        )
+                    }
+            }
+        }
 }
