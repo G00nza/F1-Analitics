@@ -7,6 +7,7 @@ data class Session(
     val raceKey: Int?,
     val name: String,
     val type: SessionType,
+    val year: Int,
     val status: String?,
     val dateStart: Instant?,
     val dateEnd: Instant?,
