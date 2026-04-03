@@ -2,7 +2,7 @@
 
 **Iteración**: 0 — bloqueante para todo
 **Prioridad**: Crítica
-**Estado**: Pendiente
+**Estado**: Terminada
 
 ## Descripción
 Tres componentes que trabajan juntos:
