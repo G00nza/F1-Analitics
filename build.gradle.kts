@@ -12,6 +12,7 @@ repositories {
 
 val ktorVersion = "2.3.9"
 val coroutinesVersion = "1.8.0"
+val exposedVersion = "0.48.0"
 
 dependencies {
     // Ktor WebSocket client
@@ -31,6 +32,12 @@ dependencies {
     // Logging
     implementation("io.github.oshai:kotlin-logging-jvm:6.0.3")
     implementation("ch.qos.logback:logback-classic:1.4.14")
+
+    // Exposed ORM + SQLite
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("org.xerial:sqlite-jdbc:3.45.1.0")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
