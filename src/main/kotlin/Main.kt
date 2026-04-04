@@ -24,6 +24,7 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.http.content.staticResources
 import io.ktor.server.routing.IgnoreTrailingSlash
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CoroutineScope
@@ -74,7 +75,7 @@ fun main(args: Array<String>) { runBlocking {
     // Load the most relevant session into memory at startup
     sessionResolver.resolve()?.also { session ->
         logger.info { "Loading session '${session.name}' (key=${session.key}) from DB" }
-        stateManager.loadFromDb(session.key)
+        stateManager.loadFromDb(session)
     } ?: logger.info { "No session found — starting in idle mode" }
 
     // ── Bridge process ──────────────────────────────────────────────────────────
@@ -122,6 +123,8 @@ fun main(args: Array<String>) { runBlocking {
                 ReplayEventView(replayRepo),
                 LatestSessionView(sessionResolver)
             )
+            // F-08.1: Serve frontend SPA; index.html as fallback for client-side routing
+            staticResources("/", "static", index = "index.html")
         }
     }.start(wait = true)
 } }

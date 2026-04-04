@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class LiveSessionStateDto(
     val sessionKey: Int,
+    val sessionName: String?,
+    val circuitName: String?,
+    val officialName: String?,
     val drivers: Map<String, DriverEntryDto>,
     val driverData: Map<String, DriverLiveDataDto>,
     val raceControlMessages: List<RaceControlEntryDto>,
@@ -78,6 +81,9 @@ data class SessionStartingSoonDto(
 
 fun LiveSessionState.toDto() = LiveSessionStateDto(
     sessionKey          = sessionKey,
+    sessionName         = sessionName,
+    circuitName         = circuitName,
+    officialName        = officialName,
     drivers             = drivers.mapValues { it.value.toDto() },
     driverData          = driverData.mapValues { it.value.toDto() },
     raceControlMessages = raceControlMessages.map { it.toDto() },

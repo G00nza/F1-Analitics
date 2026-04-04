@@ -27,17 +27,18 @@ class LiveSessionStateManager(
         private set
 
     /** Rebuilds the full state from DB — equivalent to having listened live from the start. */
-    suspend fun loadFromDb(sessionKey: Int) {
-        currentSessionKey = sessionKey
-        val drivers   = driverRepo.findBySession(sessionKey)
-        val laps      = lapRepo.findBySession(sessionKey)
-        val stints    = stintRepo.findBySession(sessionKey)
-        val raceCtrl  = raceControlRepo.findBySession(sessionKey)
-        val weather   = weatherRepo.findLatest(sessionKey)
-        val positions = positionRepo.findLatestPositions(sessionKey)
+    suspend fun loadFromDb(session: Session) {
+        currentSessionKey = session.key
+        val drivers   = driverRepo.findBySession(session.key)
+        val laps      = lapRepo.findBySession(session.key)
+        val stints    = stintRepo.findBySession(session.key)
+        val raceCtrl  = raceControlRepo.findBySession(session.key)
+        val weather   = weatherRepo.findLatest(session.key)
+        val positions = positionRepo.findLatestPositions(session.key)
 
-        _stateFlow.value = buildState(sessionKey, drivers, laps, stints, raceCtrl, weather, positions)
-        logger.info { "State loaded from DB for session $sessionKey: ${drivers.size} drivers, ${laps.size} laps" }
+        _stateFlow.value = buildState(session.key, drivers, laps, stints, raceCtrl, weather, positions)
+            .copy(sessionName = session.name)
+        logger.info { "State loaded from DB for session ${session.key}: ${drivers.size} drivers, ${laps.size} laps" }
     }
 
     /** Applies an incremental delta received from the bridge (already persisted to DB). */
@@ -53,6 +54,11 @@ class LiveSessionStateManager(
                 is TimingMessage.SessionStatusMsg   -> current?.copy(sessionStatus = message.status)
                 is TimingMessage.ExtrapolatedClockMsg -> current?.copy(timeRemaining = message.remaining)
                 is TimingMessage.LapCountMsg        -> current?.copy(lapCount = LapCountData(message.current, message.total))
+                is TimingMessage.SessionInfoMsg     -> current?.copy(
+                    sessionName  = message.name,
+                    circuitName  = message.circuit,
+                    officialName = message.officialName
+                )
                 is TimingMessage.HeartbeatMsg       -> current  // no state change
                 else                                -> current
             }

@@ -62,6 +62,23 @@ tasks.test {
     useJUnitPlatform()
 }
 
+// F-08.1: Build frontend and embed in JAR
+val buildFrontend = tasks.register<Exec>("buildFrontend") {
+    group = "f1analytics"
+    description = "Build Svelte/Vite frontend and copy dist into resources/static"
+    workingDir = file("frontend")
+    commandLine("npm", "run", "build")
+    inputs.dir("frontend/src")
+    inputs.file("frontend/package.json")
+    inputs.file("frontend/vite.config.js")
+    outputs.dir("frontend/dist")
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(buildFrontend)
+    from("frontend/dist") { into("static") }
+}
+
 tasks.register<JavaExec>("loadSeason") {
     group = "f1analytics"
     description = "Load a season from Jolpica into the local DB. Pass year with -Pargs=\"2026\"."

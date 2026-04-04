@@ -60,7 +60,7 @@ class SessionWatcher(
                     else -> {
                         // Session should be active — load state from DB
                         logger.info { "Session '${upcoming.name}' should be active — loading from DB" }
-                        stateManager.loadFromDb(upcoming.key)
+                        stateManager.loadFromDb(upcoming)
                         delay(1.minutes)
                     }
                 }

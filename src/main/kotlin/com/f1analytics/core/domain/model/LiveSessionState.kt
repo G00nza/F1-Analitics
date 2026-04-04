@@ -5,6 +5,9 @@ import kotlin.time.Duration
 
 data class LiveSessionState(
     val sessionKey: Int,
+    val sessionName: String? = null,
+    val circuitName: String? = null,
+    val officialName: String? = null,
     val drivers: Map<String, DriverEntry> = emptyMap(),
     val driverData: Map<String, DriverLiveData> = emptyMap(),
     val raceControlMessages: List<RaceControlEntry> = emptyList(),
