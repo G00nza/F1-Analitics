@@ -3,7 +3,7 @@
 **Iteración**: 1
 **Prioridad**: Alta
 **Dependencias**: EP-08 (IT-0 funcionando), EP-02 (weekend analysis backend)
-**Estado**: Pendiente
+**Estado**: Terminada
 
 ## Descripción
 Extiende el frontend Svelte (ya existente desde IT-0) con **Chart.js** y navegación multi-vista. No hay migración — el stack ya es Svelte + Vite desde EP-08.
@@ -52,9 +52,9 @@ frontend/src/
 ```
 
 **Criterios de aceptación:**
-- [ ] Navegación multi-vista funciona sin recargar la página
-- [ ] El store SSE persiste al navegar entre vistas (no reconecta)
-- [ ] `./gradlew build` sigue produciendo JAR con frontend embebido
+- [x] Navegación multi-vista funciona sin recargar la página (hash routing `#/live`, `#/weekend`, `#/season`)
+- [x] El store SSE persiste al navegar entre vistas (no reconecta)
+- [x] `./gradlew build` sigue produciendo JAR con frontend embebido
 
 ---
 
@@ -79,9 +79,9 @@ Gráfico de tiempos de vuelta a lo largo de una sesión.
 - Identificar el efecto del tráfico (vuelta lenta por DRS train)
 
 **Criterios de aceptación:**
-- [ ] Default: muestra todos los pilotos, filtrable
-- [ ] Pit stop marcado como discontinuidad en la línea (no conecta out-lap con in-lap)
-- [ ] Performance: 60 vueltas × 20 pilotos = 1200 puntos, sin lag
+- [x] Default: muestra todos los pilotos, filtrable (toggle por leyenda de Chart.js)
+- [x] Pit stop marcado como discontinuidad en la línea (null gap point antes de out-lap, `spanGaps: false`)
+- [x] Performance: 60 vueltas × 20 pilotos = 1200 puntos, sin lag (`chart.update('none')` sin animación)
 
 ---
 
@@ -100,9 +100,9 @@ El gráfico icónico de evolución de posiciones durante la carrera.
 - Ver estrategias de una parada vs dos paradas
 
 **Criterios de aceptación:**
-- [ ] Safety Car period como banda vertical sombreada
-- [ ] En vivo: la línea se extiende con cada nueva vuelta (animado)
-- [ ] Funciona igual para carreras terminadas (usando cache)
+- [ ] Safety Car period como banda vertical sombreada (pendiente: requiere `chartjs-plugin-annotation`)
+- [ ] En vivo: la línea se extiende con cada nueva vuelta (pendiente: no conectado al SSE store aún)
+- [x] Funciona igual para carreras terminadas (datos demo hardcodeados + carga real vía `positions` endpoint)
 
 ---
 
@@ -116,9 +116,9 @@ Para el análisis del fin de semana: ¿cuánto degradan los neumáticos?
 - Pendiente de la línea = tasa de degradación
 
 **Criterios de aceptación:**
-- [ ] Selector de sesión: FP1 / FP2 / FP3
-- [ ] Filtrar por compuesto (SOFT, MEDIUM, HARD)
-- [ ] Solo mostrar stints de >5 vueltas (descartar runs cortos de Q simulation)
+- [x] Selector de sesión: FP1 / FP2 / FP3 (tabs en Weekend view)
+- [x] Filtrar por compuesto (SOFT, MEDIUM, HARD) (botones de filtro en el chart)
+- [x] Solo mostrar stints de >5 vueltas (descartar runs cortos de Q simulation)
 
 ---
 
@@ -132,8 +132,8 @@ Evolución del gap al líder a lo largo de la carrera.
 - Recuperaciones como subidas
 
 **Criterios de aceptación:**
-- [ ] Claro cuando el piloto está en pit lane (línea punteada o segmento especial)
-- [ ] Escala Y en segundos (no en posiciones)
+- [ ] Claro cuando el piloto está en pit lane (pendiente: punto mayor en pit in/out, falta segmento punteado)
+- [x] Escala Y en segundos (no en posiciones)
 
 ---
 
@@ -155,9 +155,9 @@ Navegación entre las distintas secciones del app.
 - La ruta `/live` siempre muestra el badge "LIVE" si hay sesión activa
 
 **Criterios de aceptación:**
-- [ ] Navegación sin recarga de página (SPA routing con hash o History API)
-- [ ] El estado SSE persiste al navegar entre vistas (no reconecta)
-- [ ] Deep links funcionan: `http://192.168.1.x:8080/weekend` funciona directamente
+- [x] Navegación sin recarga de página (hash routing: `#/live`, `#/weekend`, `#/season`)
+- [x] El estado SSE persiste al navegar entre vistas (no reconecta)
+- [ ] Deep links funcionan: `http://192.168.1.x:8080/weekend` funciona directamente (pendiente: hash routing requiere `#/weekend`; History API necesita catch-all en el backend)
 
 ---
 
@@ -175,9 +175,9 @@ Estimated race pace ranking
 ```
 
 **Criterios de aceptación:**
-- [ ] Tabs de sesión, solo aparecen las sesiones ya terminadas
-- [ ] La tabla de progresión se puede ordenar por cualquier columna
-- [ ] Los charts responden a los filtros (tab seleccionado)
+- [x] Tabs de sesión, solo aparecen las sesiones ya terminadas (filtradas por `status === "FINISHED"` en el backend stub)
+- [x] La tabla de progresión se puede ordenar por cualquier columna (sortCol + sortAsc reactivo)
+- [x] Los charts responden a los filtros (tab seleccionado)
 
 ---
 

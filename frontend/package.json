@@ -8,6 +8,9 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "chart.js": "^4.4.0"
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^3.x",
     "svelte": "^4.x",

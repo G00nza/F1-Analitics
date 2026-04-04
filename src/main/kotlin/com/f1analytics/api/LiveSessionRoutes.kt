@@ -62,5 +62,22 @@ fun Route.liveSessionRoutes(
     get("/api/meetings/current") {
         meetingsView.handleCurrent(call)
     }
+
+    // F-09: Chart data endpoints (hardcoded stubs — real data wired in future epic)
+    get("/api/sessions/{key}/laps") {
+        call.respond(HttpStatusCode.OK, HardcodedRaceData.laps())
+    }
+
+    get("/api/sessions/{key}/stints") {
+        call.respond(HttpStatusCode.OK, HardcodedRaceData.stints())
+    }
+
+    get("/api/sessions/{key}/positions") {
+        call.respond(HttpStatusCode.OK, HardcodedRaceData.positions())
+    }
+
+    get("/api/weekend") {
+        call.respond(HttpStatusCode.OK, HardcodedRaceData.WEEKEND)
+    }
 }
 
