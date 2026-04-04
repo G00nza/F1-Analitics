@@ -2,7 +2,9 @@ package com.f1analytics.api
 
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
+import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
+import com.f1analytics.api.views.SessionStateView
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -10,13 +12,25 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.serialization.Serializable
 
+@Serializable
+private data class HealthDto(val status: String, val session: String)
+
 fun Route.liveSessionRoutes(
     liveEventView: LiveEventView,
     replayEventView: ReplayEventView,
-    latestSessionView: LatestSessionView
+    latestSessionView: LatestSessionView,
+    sessionStateView: SessionStateView,
+    meetingsView: MeetingsView,
+    isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
         call.respond(HttpStatusCode.OK, "pong")
+    }
+
+    // F-06.1: Health check
+    get("/health") {
+        val sessionStatus = if (isSessionActive()) "ACTIVE" else "IDLE"
+        call.respond(HttpStatusCode.OK, HealthDto(status = "ok", session = sessionStatus))
     }
 
     // F-00.6: Live SSE stream
@@ -29,9 +43,24 @@ fun Route.liveSessionRoutes(
         replayEventView.handle(call)
     }
 
-    // F-00.3: Latest session info for the UI
+    // F-00.3 / F-06.3: Latest session info for the UI
     get("/api/sessions/latest") {
         latestSessionView.handle(call)
+    }
+
+    // F-06.3: Snapshot of current session state
+    get("/api/sessions/{key}/state") {
+        sessionStateView.handle(call)
+    }
+
+    // F-06.3: Meetings/races by year
+    get("/api/meetings") {
+        meetingsView.handleList(call)
+    }
+
+    // F-06.3: Current meeting
+    get("/api/meetings/current") {
+        meetingsView.handleCurrent(call)
     }
 }
 

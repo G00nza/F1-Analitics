@@ -110,6 +110,15 @@ class ExposedSessionRepository(private val db: Database) : SessionRepository {
                 ?.toSession()
         }
     }
+
+    override suspend fun findByRace(raceKey: Int): List<Session> = withContext(Dispatchers.IO) {
+        transaction(db) {
+            SessionsTable.selectAll()
+                .where { SessionsTable.raceKey eq raceKey }
+                .orderBy(SessionsTable.dateStart, SortOrder.ASC_NULLS_LAST)
+                .map { it.toSession() }
+        }
+    }
 }
 
 private fun ResultRow.toSession() = Session(

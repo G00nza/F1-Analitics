@@ -15,4 +15,6 @@ interface SessionRepository {
     suspend fun findMostRecent(): Session?
     /** Returns the next session whose dateStart is in the future, if any. */
     suspend fun findNextUpcoming(): Session?
+    /** Returns all sessions belonging to a race/meeting key. */
+    suspend fun findByRace(raceKey: Int): List<Session>
 }

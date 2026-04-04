@@ -43,10 +43,10 @@ fun Application.configureServer() {
 ```
 
 **Criterios de aceptación:**
-- [ ] `GET /` devuelve el `index.html` del frontend
-- [ ] `GET /health` devuelve `{"status": "ok", "session": "ACTIVE|IDLE"}`
-- [ ] Servidor arranca en `0.0.0.0:8080` por defecto
-- [ ] Logs muestran cada request en INFO
+- [x] `GET /` devuelve el `index.html` del frontend
+- [x] `GET /health` devuelve `{"status": "ok", "session": "ACTIVE|IDLE"}`
+- [x] Servidor arranca en `0.0.0.0:8080` por defecto
+- [x] Logs muestran cada request en INFO
 
 ---
 

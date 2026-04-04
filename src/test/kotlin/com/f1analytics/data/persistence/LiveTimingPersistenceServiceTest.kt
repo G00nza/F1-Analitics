@@ -23,6 +23,7 @@ class LiveTimingPersistenceServiceTest {
         override suspend fun findActive(): Session? = null
         override suspend fun findMostRecent(): Session? = null
         override suspend fun findNextUpcoming(): Session? = null
+        override suspend fun findByRace(raceKey: Int): List<Session> = emptyList()
     }
 
     private class FakeSessionDriverRepository : SessionDriverRepository {
