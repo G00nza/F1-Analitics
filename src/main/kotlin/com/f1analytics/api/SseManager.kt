@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.Writer
@@ -18,6 +20,12 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 private val json = Json { encodeDefaults = true }
+
+@Serializable
+private data class HeartbeatDto(val timestamp: String)
+
+@Serializable
+private data class SessionStatusDto(val status: String)
 
 /**
  * Simple SSE sink backed by a [Writer] (from respondTextWriter).
@@ -29,14 +37,9 @@ class SseSink(private val writer: Writer) {
         writer.write("data: $data\r\n\r\n")
         writer.flush()
     }
-
-    fun sendComment(comment: String) {
-        writer.write(": $comment\r\n\r\n")
-        writer.flush()
-    }
 }
 
-/** F-00.6: Fans out the session StateFlow to all connected SSE browsers. */
+/** F-06.2: Fans out the session StateFlow to all connected SSE browsers. */
 class SseManager(private val stateManager: LiveSessionStateManager) {
 
     private val _systemEvents = MutableSharedFlow<SessionStatusEvent>(
@@ -48,17 +51,22 @@ class SseManager(private val stateManager: LiveSessionStateManager) {
     suspend fun handleLiveClient(sink: SseSink) {
         logger.info { "SSE client connected" }
         try {
-            // Send the current full state immediately.
-            stateManager.stateFlow.value?.let {
-                sink.sendEvent(json.encodeToString(it.toDto()), "session_state")
+            val currentState = stateManager.stateFlow.value
+            if (currentState != null) {
+                // Send the current full state immediately on connect
+                sink.sendEvent(json.encodeToString(currentState.toDto()), "session_state")
+            } else {
+                // No active session — tell the client to show idle view
+                sink.sendEvent(json.encodeToString(SessionStatusDto("IDLE")), "session_status")
             }
 
             coroutineScope {
-                // Heartbeat — prevents proxy connection timeouts
+                // F-06.2: Heartbeat — named event with timestamp prevents proxy timeouts
                 launch {
                     while (true) {
                         delay(30.seconds)
-                        sink.sendComment("heartbeat")
+                        val hb = HeartbeatDto(Clock.System.now().toString())
+                        sink.sendEvent(json.encodeToString(hb), "heartbeat")
                     }
                 }
 

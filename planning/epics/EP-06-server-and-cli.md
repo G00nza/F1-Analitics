@@ -110,10 +110,10 @@ data class HeartbeatDto(
 ```
 
 **Criterios de aceptación:**
-- [ ] Múltiples browsers conectados simultáneamente (fan-out correcto)
-- [ ] Si el servidor no tiene sesión activa, manda `session_status: IDLE` y sigue esperando
-- [ ] El heartbeat previene que el browser cierre la conexión por timeout
-- [ ] Browser reconecta automáticamente si se cae la conexión (comportamiento nativo de EventSource)
+- [x] Múltiples browsers conectados simultáneamente (fan-out correcto)
+- [x] Si el servidor no tiene sesión activa, manda `session_status: IDLE` y sigue esperando
+- [x] El heartbeat previene que el browser cierre la conexión por timeout
+- [x] Browser reconecta automáticamente si se cae la conexión (comportamiento nativo de EventSource)
 
 ---
 
