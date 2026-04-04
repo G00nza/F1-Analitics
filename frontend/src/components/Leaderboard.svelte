@@ -3,9 +3,21 @@
   import { sessionState } from '../stores/session.js';
   import TyreIndicator from './TyreIndicator.svelte';
   import { formatLapTime } from '../lib/f1utils.js';
+
+  $: ts = $sessionState?.trackStatus;
+  $: isSC      = ts === '4';
+  $: isVSC     = ts === '6' || ts === '7';
+  $: isRedFlag = ts === '5';
 </script>
 
 {#if $sessionState?.drivers}
+  {#if isRedFlag}
+    <div class="track-banner red-flag">🔴 RED FLAG — SESSION SUSPENDED</div>
+  {:else if isSC}
+    <div class="track-banner safety-car">🚗 SAFETY CAR DEPLOYED</div>
+  {:else if isVSC}
+    <div class="track-banner safety-car">🚗 VIRTUAL SAFETY CAR</div>
+  {/if}
   <!-- Desktop + Tablet: table view -->
   <div class="leaderboard table-view">
     <table>
@@ -73,6 +85,27 @@
     flex: 1;
     overflow-x: auto;
     padding: 0.5rem;
+  }
+
+  /* ── Track status banners ── */
+  .track-banner {
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-align: center;
+    letter-spacing: 0.06em;
+  }
+
+  .red-flag {
+    background-color: #7a0000;
+    color: #fff;
+    border-bottom: 2px solid #FF1E00;
+  }
+
+  .safety-car {
+    background-color: #5a3800;
+    color: #FFF200;
+    border-bottom: 2px solid #FF8000;
   }
 
   /* ── Table view: desktop + tablet ── */

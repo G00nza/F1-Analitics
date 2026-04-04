@@ -57,15 +57,34 @@ export const sessionState = derived(_rawState, ($raw) => {
     };
 });
 
-const es = new EventSource('/api/events/live');
+function attachHandlers(source) {
+    source.addEventListener('session_state', (e) => {
+        _rawState.set(JSON.parse(e.data));
+    });
+    source.addEventListener('session_starting_soon', (e) => {
+        nextSession.set(JSON.parse(e.data));
+    });
+    source.onerror = () => connectionStatus.set('reconnecting');
+    source.onopen  = () => connectionStatus.set('connected');
+}
 
-es.addEventListener('session_state', (e) => {
-    _rawState.set(JSON.parse(e.data));
-});
+let _es = new EventSource('/api/events/live');
+attachHandlers(_es);
 
-es.addEventListener('session_starting_soon', (e) => {
-    nextSession.set(JSON.parse(e.data));
-});
+/** Switch to a recorded replay stream for the given session key. */
+export function connectToReplay(sessionKey) {
+    _es.close();
+    connectionStatus.set('connecting');
+    _rawState.set(null);
+    _es = new EventSource(`/api/events/replay/${sessionKey}`);
+    attachHandlers(_es);
+}
 
-es.onerror = () => connectionStatus.set('reconnecting');
-es.onopen  = () => connectionStatus.set('connected');
+/** Switch back to the live stream. */
+export function connectToLive() {
+    _es.close();
+    connectionStatus.set('connecting');
+    _rawState.set(null);
+    _es = new EventSource('/api/events/live');
+    attachHandlers(_es);
+}
