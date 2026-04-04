@@ -1,6 +1,11 @@
 plugins {
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.serialization") version "1.9.22"
+    application
+}
+
+application {
+    mainClass.set("com.f1analytics.MainKt")
 }
 
 group = "com.f1analytics"
@@ -55,6 +60,17 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.register<JavaExec>("loadSeason") {
+    group = "f1analytics"
+    description = "Load a season from Jolpica into the local DB. Pass year with -Pargs=\"2026\"."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.f1analytics.tools.SeasonLoaderKt")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(17)) })
+    if (project.hasProperty("args")) {
+        args = (project.property("args") as String).split(" ")
+    }
 }
 kotlin {
     jvmToolchain(17)

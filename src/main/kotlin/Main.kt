@@ -24,6 +24,7 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.routing.IgnoreTrailingSlash
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +37,7 @@ private val logger = KotlinLogging.logger {}
 private const val BRIDGE_PORT = 9001
 private const val SERVER_PORT = 8080
 
-fun main() = runBlocking {
+fun main(args: Array<String>) { runBlocking {
     logger.info { "Starting F1 Analytics server" }
 
     // ── Database ────────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ fun main() = runBlocking {
 
     // ── HTTP server ─────────────────────────────────────────────────────────────
     embeddedServer(CIO, port = SERVER_PORT) {
+        install(IgnoreTrailingSlash)
         install(ContentNegotiation) { json() }
 
         routing {
@@ -122,4 +124,4 @@ fun main() = runBlocking {
             )
         }
     }.start(wait = true)
-}
+} }
