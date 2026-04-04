@@ -3,7 +3,7 @@
 **Iteración**: 0
 **Prioridad**: Alta
 **Dependencias**: EP-06 (servidor SSE + REST funcionando)
-**Estado**: Pendiente
+**Estado**: Terminada
 
 ## Descripción
 Primera versión del frontend en **Svelte + Vite**: una SPA que muestra el live leaderboard actualizado via SSE. Funciona en PC, tablet y mobile desde el primer día.

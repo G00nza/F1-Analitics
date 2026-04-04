@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="F1 Analytics" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.f1analytics.MainKt" />
+    <module name="F1-Analitics.main" />
+    <option name="VM_PARAMETERS" value="-ea" />
+    <shortenClasspath name="MANIFEST" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

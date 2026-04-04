@@ -7,7 +7,6 @@ import com.f1analytics.data.db.tables.SessionsTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import kotlin.time.Duration.Companion.hours
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
@@ -81,15 +80,9 @@ class ExposedSessionRepository(private val db: Database) : SessionRepository {
     }
 
     override suspend fun findMostRecent(): Session? = withContext(Dispatchers.IO) {
-        val fourHoursAgo = Clock.System.now().minus(4.hours)
         transaction(db) {
             SessionsTable.selectAll()
-                .where {
-                    SessionsTable.recorded eq true and (
-                        SessionsTable.dateEnd.isNull() or
-                        (SessionsTable.dateEnd greaterEq fourHoursAgo)
-                    )
-                }
+                .where { SessionsTable.recorded eq true }
                 .orderBy(SessionsTable.dateStart, SortOrder.DESC_NULLS_LAST)
                 .firstOrNull()
                 ?.toSession()

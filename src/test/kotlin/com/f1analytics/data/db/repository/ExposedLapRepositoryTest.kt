@@ -1,8 +1,12 @@
 package com.f1analytics.data.db.repository
 
 import com.f1analytics.core.domain.model.DriverTimingDelta
+import com.f1analytics.data.db.tables.SessionsTable
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.transaction
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -11,7 +15,22 @@ import kotlin.test.assertNull
 class ExposedLapRepositoryTest : RepositoryTestBase() {
 
     private val repo get() = ExposedLapRepository(db)
+    private val sessionKey = 1
     private val ts = Instant.parse("2024-03-02T16:00:00Z")
+
+    @BeforeTest
+    fun insertSession() {
+        transaction(db) {
+            SessionsTable.insert {
+                it[key]      = sessionKey
+                it[raceKey]  = 1
+                it[name]     = "Race"
+                it[type]     = "RACE"
+                it[year]     = 2024
+                it[recorded] = true
+            }
+        }
+    }
 
     @Test
     fun `delta without lapNumber is silently skipped`() = runTest {

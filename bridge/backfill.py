@@ -120,8 +120,8 @@ def _float(val) -> float | None:
 
 def _ts(session_date, offset) -> str | None:
     """
-    Compute an ISO-8601 UTC timestamp from session start + session-relative offset.
-    session_date is a tz-aware datetime; offset is a Timedelta.
+    Compute a SQLite-compatible UTC timestamp from session start + session-relative offset.
+    Format: 'YYYY-MM-DD HH:MM:SS.ffffff' (space separator, no timezone suffix).
     """
     try:
         if pd.isna(offset):
@@ -132,7 +132,8 @@ def _ts(session_date, offset) -> str | None:
         dt = session_date + offset
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.isoformat()
+        dt_utc = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt_utc.strftime("%Y-%m-%d %H:%M:%S.%f")
     except Exception:
         return None
 
@@ -295,7 +296,10 @@ def _insert_weather(con: sqlite3.Connection, sk: int, session, session_date) -> 
 
 
 def _abs_ts(val) -> str | None:
-    """Convert an absolute pandas Timestamp (not session-relative) to ISO string."""
+    """
+    Convert an absolute pandas Timestamp to a SQLite-compatible UTC timestamp.
+    Format: 'YYYY-MM-DD HH:MM:SS.ffffff' (space separator, no timezone suffix).
+    """
     try:
         if pd.isna(val):
             return None
@@ -305,7 +309,8 @@ def _abs_ts(val) -> str | None:
         ts = pd.Timestamp(val)
         if ts.tzinfo is None:
             ts = ts.tz_localize("UTC")
-        return ts.isoformat()
+        ts_utc = ts.tz_convert("UTC")
+        return ts_utc.strftime("%Y-%m-%d %H:%M:%S.%f")
     except Exception:
         return None
 

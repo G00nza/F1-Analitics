@@ -80,4 +80,34 @@ class ExposedSessionRepositoryTest : RepositoryTestBase() {
         assertEquals("Finished", repo.findByKey(30)!!.status)
         assertEquals(SessionType.QUALIFYING, repo.findByKey(30)!!.type)
     }
+
+    @Test
+    fun `findMostRecent returns the recorded session with latest dateStart`() = runTest {
+        repo.upsert(aSession(key = 40, recorded = true).copy(
+            dateStart = Instant.parse("2024-01-01T10:00:00Z")
+        ))
+        repo.upsert(aSession(key = 41, recorded = true).copy(
+            dateStart = Instant.parse("2024-06-01T14:00:00Z")
+        ))
+        val result = repo.findMostRecent()
+        assertNotNull(result)
+        assertEquals(41, result.key)
+    }
+
+    @Test
+    fun `findMostRecent returns null when no recorded sessions exist`() = runTest {
+        repo.upsert(aSession(key = 50, recorded = false))
+        assertNull(repo.findMostRecent())
+    }
+
+    @Test
+    fun `findMostRecent returns session regardless of how old it is`() = runTest {
+        repo.upsert(aSession(key = 60, recorded = true).copy(
+            dateStart = Instant.parse("2020-03-01T10:00:00Z"),
+            dateEnd   = Instant.parse("2020-03-01T12:00:00Z")
+        ))
+        val result = repo.findMostRecent()
+        assertNotNull(result)
+        assertEquals(60, result.key)
+    }
 }

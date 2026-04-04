@@ -4,15 +4,32 @@ import com.f1analytics.core.domain.model.*
 import com.f1analytics.data.db.tables.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ExposedInsertOnlyRepositoriesTest : RepositoryTestBase() {
 
+    private val sessionKey = 1
     private val ts = Instant.parse("2024-03-02T16:00:00Z")
+
+    @BeforeTest
+    fun insertSession() {
+        transaction(db) {
+            SessionsTable.insert {
+                it[key]      = sessionKey
+                it[raceKey]  = 1
+                it[name]     = "Race"
+                it[type]     = "RACE"
+                it[year]     = 2024
+                it[recorded] = true
+            }
+        }
+    }
 
     // ── SessionDriver ──────────────────────────────────────────────────────
 
