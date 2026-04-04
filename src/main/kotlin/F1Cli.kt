@@ -56,7 +56,7 @@ class ServeCommand : CliktCommand(name = "serve", help = "Start the F1 Analytics
 class DataCommand : CliktCommand(name = "data", help = "Manage local F1 data") {
     override fun run() = Unit
     init {
-        subcommands(DataInitCommand(), DataSyncCommand())
+        subcommands(DataInitCommand(), DataSyncCommand(), DataBackfillCommand())
     }
 }
 
@@ -211,6 +211,37 @@ class DataSyncCommand : CliktCommand(name = "sync", help = "Backfill results for
 
         httpClient.close()
         echo("Round $r synced: ${results.size} results saved")
+    }
+}
+
+class DataBackfillCommand : CliktCommand(
+    name = "backfill",
+    help = "Backfill lap, stint, telemetry, weather and race-control data from FastF1"
+) {
+    private val year by option("--year", "-y", help = "Season year (default: current)").int()
+        .default(Clock.System.now().toLocalDateTime(TimeZone.UTC).year)
+    private val round by option("--round", "-r", help = "Round number (default: all completed)").int()
+    private val noTelemetry by option("--no-telemetry", help = "Skip high-frequency car telemetry").flag()
+
+    override fun run() {
+        val args = buildList {
+            add("python3")
+            add("bridge/backfill.py")
+            add(year.toString())
+            if (round != null) add(round.toString()) else add("all")
+            if (noTelemetry) add("--no-telemetry")
+        }
+
+        echo("Running FastF1 backfill for $year${round?.let { " round $it" } ?: " (all completed rounds)"}…")
+
+        val process = ProcessBuilder(args)
+            .inheritIO()
+            .start()
+
+        val exit = process.waitFor()
+        if (exit != 0) {
+            echo("Backfill exited with code $exit", err = true)
+        }
     }
 }
 

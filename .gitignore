@@ -35,6 +35,9 @@ bin/
 /nbdist/
 /.nb-gradle/
 
+f1analytics.db
+bridge/cache/
+
 ### VS Code ###
 .vscode/
 
