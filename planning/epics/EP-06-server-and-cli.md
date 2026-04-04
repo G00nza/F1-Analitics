@@ -197,9 +197,9 @@ data class WeatherDto(
 **Criterio de tiempos:** todos los tiempos de vuelta, sectores y gaps se representan como `String?` tal como vienen del bridge (ej. `"1:29.179"`, `"29.432"`, `"+0.438"`, `"1 LAP"`). Los datos climáticos son numéricos para que el frontend pueda formatear/convertir unidades.
 
 **Criterios de aceptación:**
-- [ ] Todos los tiempos formateados como strings legibles (no ms crudos)
-- [ ] `teamColor` en hex para usar directamente en CSS
-- [ ] `null` cuando el dato no está disponible (no strings vacíos)
+- [x] Todos los tiempos formateados como strings legibles (no ms crudos)
+- [x] `teamColor` en hex para usar directamente en CSS
+- [x] `null` cuando el dato no está disponible (no strings vacíos)
 
 ---
 
@@ -216,9 +216,9 @@ staticResources("/", "static") {
 El Gradle task `buildFrontend` (definido en EP-08) copia `frontend/dist/` a `server/src/main/resources/static/` antes del `processResources`. En desarrollo se usa Vite dev server en `:5173` con proxy al backend en `:8080`.
 
 **Criterios de aceptación:**
-- [ ] `GET /` sirve `index.html`
-- [ ] `GET /app.js`, `GET /styles.css` funcionan
-- [ ] URLs desconocidas devuelven `index.html` (SPA routing)
+- [x] `GET /` sirve `index.html`
+- [x] `GET /app.js`, `GET /styles.css` funcionan
+- [x] URLs desconocidas devuelven `index.html` (SPA routing)
 - [ ] Assets con cache headers apropiados (inmutables para hashed filenames en IT-1+)
 
 ---
@@ -255,8 +255,8 @@ f1 serve            # ← a partir de acá, el servidor nunca llama a Jolpica
 4. Inicia el bridge Python como subprocess y conecta el LiveTimingWsClient
 
 **Criterios de aceptación:**
-- [ ] Detecta la IP local automáticamente para mostrarla al usuario
-- [ ] `Ctrl+C` hace graceful shutdown (termina el polling, cierra conexiones SSE)
+- [x] Detecta la IP local automáticamente para mostrarla al usuario
+- [x] `Ctrl+C` hace graceful shutdown (termina el polling, cierra conexiones SSE)
 - [ ] Si el puerto está ocupado, muestra error claro con sugerencia de `--port`
 
 ---
