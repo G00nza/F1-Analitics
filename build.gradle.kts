@@ -62,6 +62,16 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.named<JavaExec>("run") {
+    doFirst {
+        val frontend = ProcessBuilder("npm", "run", "dev")
+            .directory(file("frontend"))
+            .inheritIO()
+            .start()
+        Runtime.getRuntime().addShutdownHook(Thread { frontend.destroy() })
+    }
+}
+
 // F-08.1: Build frontend and embed in JAR
 val buildFrontend = tasks.register<Exec>("buildFrontend") {
     group = "f1analytics"
@@ -78,6 +88,7 @@ tasks.named<ProcessResources>("processResources") {
     dependsOn(buildFrontend)
     from("frontend/dist") { into("static") }
 }
+
 
 tasks.register<JavaExec>("loadSeason") {
     group = "f1analytics"
