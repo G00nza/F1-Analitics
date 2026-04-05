@@ -11,13 +11,14 @@ import kotlin.test.assertTrue
 class ReplayEventViewTest : ViewTestBase() {
 
     @Test
-    fun `returns 400 for non-integer session key`() = testApp {
+    fun `returns 400 for non-integer session key`() = testApp { client ->
         val response = client.get("/api/events/replay/notanumber")
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     @Test
-    fun `returns event-stream content type`() = testApp {
+    fun `returns event-stream content type`() = testApp { client ->
+        insertRace()
         insertSession(key = 9001, recorded = true)
 
         val response = client.get("/api/events/replay/9001")
@@ -30,7 +31,8 @@ class ReplayEventViewTest : ViewTestBase() {
     }
 
     @Test
-    fun `completes with empty body when session has no recorded events`() = testApp {
+    fun `completes with empty body when session has no recorded events`() = testApp { client ->
+        insertRace()
         insertSession(key = 9001, recorded = true)
 
         val response = client.get("/api/events/replay/9001")

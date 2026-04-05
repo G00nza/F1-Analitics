@@ -20,6 +20,8 @@ import com.f1analytics.data.db.repository.ExposedStintRepository
 import com.f1analytics.data.db.repository.ExposedWeatherRepository
 import com.f1analytics.data.db.tables.RacesTable
 import com.f1analytics.data.db.tables.SessionsTable
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
@@ -43,15 +45,23 @@ abstract class ViewTestBase {
     fun setupDb() {
         dbFile = File.createTempFile("f1apitest", ".db")
         db = DatabaseFactory.init("jdbc:sqlite:${dbFile.absolutePath}")
-        transaction(db) {
-            RacesTable.insert {
-                it[key]       = 1
-                it[name]      = "Bahrain Grand Prix"
-                it[circuit]   = "Bahrain International Circuit"
-                it[year]      = 2026
-                it[round]     = 1
-                it[dateStart] = "2026-03-16"
-            }
+    }
+
+    protected fun insertRace(
+        key: Int = 1,
+        name: String = "Bahrain Grand Prix",
+        circuit: String = "Bahrain International Circuit",
+        year: Int = 2026,
+        round: Int = 1,
+        dateStart: String = "2026-03-16"
+    ) = transaction(db) {
+        RacesTable.insert {
+            it[RacesTable.key]       = key
+            it[RacesTable.name]      = name
+            it[RacesTable.circuit]   = circuit
+            it[RacesTable.year]      = year
+            it[RacesTable.round]     = round
+            it[RacesTable.dateStart] = dateStart
         }
     }
 
@@ -101,7 +111,7 @@ abstract class ViewTestBase {
 
     protected fun testApp(
         stateManager: LiveSessionStateManager = makeStateManager(),
-        block: suspend ApplicationTestBuilder.() -> Unit
+        block: suspend ApplicationTestBuilder.(HttpClient) -> Unit
     ) = testApplication {
         install(ContentNegotiation) { json() }
         routing {
@@ -113,6 +123,7 @@ abstract class ViewTestBase {
                 meetingsView      = MeetingsView(ExposedRaceRepository(db), ExposedSessionRepository(db))
             )
         }
-        block()
+        val jsonClient = createClient { install(ClientContentNegotiation) { json() } }
+        block(jsonClient)
     }
 }

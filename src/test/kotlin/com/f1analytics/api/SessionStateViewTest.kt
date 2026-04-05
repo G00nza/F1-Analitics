@@ -1,23 +1,24 @@
 package com.f1analytics.api
 
+import com.f1analytics.api.dto.LiveSessionStateDto
 import com.f1analytics.core.domain.model.LiveSessionState
+import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlin.test.Test
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class SessionStateViewTest : ViewTestBase() {
 
     @Test
-    fun `returns 400 for non-integer key`() = testApp {
+    fun `returns 400 for non-integer key`() = testApp { client ->
         val response = client.get("/api/sessions/abc/state")
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     @Test
-    fun `returns 404 when state manager has no state`() = testApp {
+    fun `returns 404 when state manager has no state`() = testApp { client ->
         val response = client.get("/api/sessions/9001/state")
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
@@ -27,7 +28,7 @@ class SessionStateViewTest : ViewTestBase() {
         val stateManager = makeStateManager()
         stateManager.injectState(LiveSessionState(sessionKey = 9999))
 
-        testApp(stateManager = stateManager) {
+        testApp(stateManager) { client ->
             val response = client.get("/api/sessions/9001/state")
             assertEquals(HttpStatusCode.NotFound, response.status)
         }
@@ -40,14 +41,13 @@ class SessionStateViewTest : ViewTestBase() {
             LiveSessionState(sessionKey = 9001, sessionName = "Race", trackStatus = "AllClear")
         )
 
-        testApp(stateManager = stateManager) {
-            val response = client.get("/api/sessions/9001/state")
+        testApp(stateManager) { client ->
+            val dto = client.get("/api/sessions/9001/state").body<LiveSessionStateDto>()
 
-            assertEquals(HttpStatusCode.OK, response.status)
-            val body = response.bodyAsText()
-            assertContains(body, "\"sessionKey\":9001")
-            assertContains(body, "\"sessionName\":\"Race\"")
-            assertContains(body, "\"trackStatus\":\"AllClear\"")
+            assertEquals(9001, dto.sessionKey)
+            assertEquals("Race", dto.sessionName)
+            assertEquals("AllClear", dto.trackStatus)
+            assertNull(dto.sessionStatus)
         }
     }
 }

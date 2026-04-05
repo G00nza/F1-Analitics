@@ -1,113 +1,64 @@
 package com.f1analytics.api
 
-import com.f1analytics.api.views.LatestSessionView
-import com.f1analytics.api.views.LiveEventView
-import com.f1analytics.api.views.MeetingsView
-import com.f1analytics.api.views.ReplayEventView
-import com.f1analytics.api.views.SessionStateView
-import com.f1analytics.core.service.LiveSessionStateManager
-import com.f1analytics.core.service.SessionResolver
-import com.f1analytics.data.db.DatabaseFactory
-import com.f1analytics.data.db.repository.ExposedLapRepository
-import com.f1analytics.data.db.repository.ExposedPositionRepository
-import com.f1analytics.data.db.repository.ExposedRaceControlRepository
-import com.f1analytics.data.db.repository.ExposedRaceRepository
-import com.f1analytics.data.db.repository.ExposedReplayRepository
-import com.f1analytics.data.db.repository.ExposedSessionDriverRepository
-import com.f1analytics.data.db.repository.ExposedSessionRepository
-import com.f1analytics.data.db.repository.ExposedStintRepository
-import com.f1analytics.data.db.repository.ExposedWeatherRepository
+import com.f1analytics.api.views.MeetingDto
+import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.testApplication
-import java.io.File
 import kotlin.test.Test
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class MeetingsViewTest : ViewTestBase() {
 
     @Test
-    fun `GET meetings returns empty list when no races for requested year`() = testApp {
-        val response = client.get("/api/meetings?year=2020")
-
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("[]", response.bodyAsText())
+    fun `GET meetings returns empty list when no races for requested year`() = testApp { client ->
+        val meetings = client.get("/api/meetings?year=2020").body<List<MeetingDto>>()
+        assertTrue(meetings.isEmpty())
     }
 
     @Test
-    fun `GET meetings returns meetings with sessions for the given year`() = testApp {
+    fun `GET meetings returns meetings with sessions for the given year`() = testApp { client ->
+        insertRace()
         insertSession(key = 9001, name = "Race", type = "RACE")
         insertSession(key = 9002, name = "Qualifying", type = "QUALIFYING")
 
-        val response = client.get("/api/meetings?year=2026")
+        val meetings = client.get("/api/meetings?year=2026").body<List<MeetingDto>>()
 
-        assertEquals(HttpStatusCode.OK, response.status)
-        val body = response.bodyAsText()
-        assertContains(body, "\"name\":\"Bahrain Grand Prix\"")
-        assertContains(body, "\"circuit\":\"Bahrain International Circuit\"")
-        assertContains(body, "\"name\":\"Race\"")
-        assertContains(body, "\"name\":\"Qualifying\"")
+        assertEquals(1, meetings.size)
+        val meeting = meetings[0]
+        assertEquals("Bahrain Grand Prix", meeting.name)
+        assertEquals("Bahrain International Circuit", meeting.circuit)
+        assertEquals(2, meeting.sessions.size)
+        assertEquals(setOf("Race", "Qualifying"), meeting.sessions.map { it.name }.toSet())
     }
 
     @Test
-    fun `GET meetings returns race with empty sessions list when race has no sessions`() = testApp {
-        val response = client.get("/api/meetings?year=2026")
+    fun `GET meetings returns race with empty sessions list when race has no sessions`() = testApp { client ->
+        insertRace()
 
-        assertEquals(HttpStatusCode.OK, response.status)
-        val body = response.bodyAsText()
-        assertContains(body, "\"key\":1")
-        assertContains(body, "\"sessions\":[]")
+        val meetings = client.get("/api/meetings?year=2026").body<List<MeetingDto>>()
+
+        assertEquals(1, meetings.size)
+        assertEquals(1, meetings[0].key)
+        assertTrue(meetings[0].sessions.isEmpty())
     }
 
     @Test
-    fun `GET meetings current returns 204 when no races exist`() {
-        val emptyDbFile = File.createTempFile("f1empty", ".db")
-        try {
-            val emptyDb = DatabaseFactory.init("jdbc:sqlite:${emptyDbFile.absolutePath}")
-            val emptyStateManager = LiveSessionStateManager(
-                driverRepo      = ExposedSessionDriverRepository(emptyDb),
-                lapRepo         = ExposedLapRepository(emptyDb),
-                stintRepo       = ExposedStintRepository(emptyDb),
-                raceControlRepo = ExposedRaceControlRepository(emptyDb),
-                weatherRepo     = ExposedWeatherRepository(emptyDb),
-                positionRepo    = ExposedPositionRepository(emptyDb)
-            )
-            testApplication {
-                install(ContentNegotiation) { json() }
-                routing {
-                    liveSessionRoutes(
-                        liveEventView     = LiveEventView(SseManager(emptyStateManager)),
-                        replayEventView   = ReplayEventView(ExposedReplayRepository(emptyDb)),
-                        latestSessionView = LatestSessionView(SessionResolver(ExposedSessionRepository(emptyDb))),
-                        sessionStateView  = SessionStateView(emptyStateManager),
-                        meetingsView      = MeetingsView(ExposedRaceRepository(emptyDb), ExposedSessionRepository(emptyDb))
-                    )
-                }
-                val response = client.get("/api/meetings/current")
-                assertEquals(HttpStatusCode.NoContent, response.status)
-            }
-        } finally {
-            emptyDbFile.delete()
-            File("${emptyDbFile.absolutePath}-wal").delete()
-            File("${emptyDbFile.absolutePath}-shm").delete()
-        }
+    fun `GET meetings current returns 204 when no races exist`() = testApp { client ->
+        val response = client.get("/api/meetings/current")
+        assertEquals(HttpStatusCode.NoContent, response.status)
     }
 
     @Test
-    fun `GET meetings current returns the nearest race with its sessions`() = testApp {
+    fun `GET meetings current returns the nearest race with its sessions`() = testApp { client ->
+        insertRace()
         insertSession(key = 9001, name = "Race", type = "RACE")
 
-        val response = client.get("/api/meetings/current")
+        val meeting = client.get("/api/meetings/current").body<MeetingDto>()
 
-        assertEquals(HttpStatusCode.OK, response.status)
-        val body = response.bodyAsText()
-        assertContains(body, "\"name\":\"Bahrain Grand Prix\"")
-        assertContains(body, "\"key\":1")
-        assertContains(body, "\"name\":\"Race\"")
+        assertEquals(1, meeting.key)
+        assertEquals("Bahrain Grand Prix", meeting.name)
+        assertEquals(1, meeting.sessions.size)
+        assertEquals("Race", meeting.sessions[0].name)
     }
 }
