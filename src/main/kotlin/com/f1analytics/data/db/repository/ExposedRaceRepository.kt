@@ -13,7 +13,6 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
-import kotlin.math.abs
 
 class ExposedRaceRepository(private val db: Database) : RaceRepository {
 
@@ -38,10 +37,19 @@ class ExposedRaceRepository(private val db: Database) : RaceRepository {
     override suspend fun findCurrent(): Race? = withContext(Dispatchers.IO) {
         val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date.toString()
         transaction(db) {
-            RacesTable.selectAll()
+            val races = RacesTable.selectAll()
                 .map { it.toRace() }
                 .filter { it.dateStart != null }
-                .minByOrNull { abs(it.dateStart!!.compareTo(today)) }
+
+            // Active: weekend has started and not yet ended
+            val active = races
+                .filter { it.dateStart!! <= today && (it.dateEnd == null || it.dateEnd >= today) }
+                .maxByOrNull { it.dateStart!! }
+            if (active != null) return@transaction active
+
+            // Fallback: most recent finished race
+            races.filter { it.dateStart!! < today }
+                .maxByOrNull { it.dateStart!! }
         }
     }
 }

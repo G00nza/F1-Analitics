@@ -8,6 +8,7 @@ import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.com.f1analytics.api.views.SessionLapsView
 import com.f1analytics.com.f1analytics.api.views.SessionPositionsView
 import com.f1analytics.com.f1analytics.api.views.SessionStintsView
+import com.f1analytics.com.f1analytics.api.views.WeekendView
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -27,6 +28,7 @@ fun Route.liveSessionRoutes(
     sessionLapsView: SessionLapsView,
     sessionPositionsView: SessionPositionsView,
     sessionStintsView: SessionStintsView,
+    weekendView: WeekendView,
     isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
@@ -83,7 +85,7 @@ fun Route.liveSessionRoutes(
     }
 
     get("/api/weekend") {
-        call.respond(HttpStatusCode.OK, HardcodedRaceData.WEEKEND)
+        weekendView.handle(call)
     }
 }
 
