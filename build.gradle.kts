@@ -70,6 +70,7 @@ tasks.test {
 }
 
 tasks.named<JavaExec>("run") {
+    systemProperty("f1.dev", "true")
     doFirst {
         val frontend = ProcessBuilder("npm", "run", "dev")
             .directory(file("frontend"))

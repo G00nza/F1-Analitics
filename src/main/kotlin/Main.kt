@@ -127,15 +127,22 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
     sessionWatcher.start()
 
     // ── Print access URLs ───────────────────────────────────────────────────────
+    val devMode = System.getProperty("f1.dev") == "true"
     val networkIp = detectLocalIp()
     println("")
     println("F1 Analytics server running")
-    println("  Local:   http://localhost:$port")
-    if (networkIp != null) println("  Network: http://$networkIp:$port")
+    if (devMode) {
+        println("  Frontend (HMR): http://localhost:5173")
+        println("  Backend API:    http://localhost:$port")
+    } else {
+        println("  Local:   http://localhost:$port")
+        if (networkIp != null) println("  Network: http://$networkIp:$port")
+    }
     println("")
 
     if (openBrowser) {
-        openBrowser("http://localhost:$port")
+        val browserUrl = if (devMode) "http://localhost:5173" else "http://localhost:$port"
+        openBrowser(browserUrl)
     }
 
     // ── HTTP server ─────────────────────────────────────────────────────────────

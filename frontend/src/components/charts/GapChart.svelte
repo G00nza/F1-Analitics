@@ -16,11 +16,7 @@
       if (!byDriver.has(lap.driverNumber)) {
         byDriver.set(lap.driverNumber, { code: lap.driverCode, color: lap.teamColor, entries: [] });
       }
-      // Include leader (null gap = 0) and any driver with a valid gap
-      const gap = lap.gapToLeaderMs;
-      if (gap !== null || lap.gapToLeaderMs === null) {
-        byDriver.get(lap.driverNumber).entries.push(lap);
-      }
+      byDriver.get(lap.driverNumber).entries.push(lap);
     }
 
     return [...byDriver.values()].map(d => {

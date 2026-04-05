@@ -14,7 +14,6 @@ class SessionLapsView(
     private val driverRepository: SessionDriverRepository,
     private val stintRepository: StintRepository,
     private val positionRepository: PositionRepository
-
 ) {
 
     suspend fun handle(call: ApplicationCall) {
@@ -57,7 +56,7 @@ class SessionLapsView(
                 isPersonalBest = lap.isPersonalBest,
                 compound       = stint.compound,
                 stintNumber    = stint.stintNumber,
-                gapToLeaderMs  = lapDriverPosition?.gapToLeader?.toIntOrNull()
+                gapToLeaderMs  = lapDriverPosition?.gapToLeader?.toDoubleOrNull()?.let { (it * 1000).toInt() }
             )
         }
     }
