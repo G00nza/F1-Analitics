@@ -56,4 +56,27 @@ class ExposedPositionRepository(private val db: Database) : PositionRepository {
                     }
             }
         }
+
+    override suspend fun findAllPositionsByDriver(sessionKey: Int): Map<String, List<DriverPositionSnapshot>> =
+        withContext(Dispatchers.IO) {
+            transaction(db) {
+                // Fetch all snapshots ordered DESC by timestamp; take the first per driver.
+                PositionSnapshotsTable.selectAll()
+                    .where { PositionSnapshotsTable.sessionKey eq sessionKey }
+                    .orderBy(PositionSnapshotsTable.timestamp, SortOrder.ASC)
+                    .toList()
+                    .groupBy { it[PositionSnapshotsTable.driverNumber] }
+                    .mapValues { (driverNum, rows) ->
+                        rows.map {
+                            DriverPositionSnapshot(
+                                driverNumber = driverNum,
+                                position = it[PositionSnapshotsTable.position],
+                                gapToLeader = it[PositionSnapshotsTable.gapToLeader],
+                                interval = it[PositionSnapshotsTable.interval]
+                            )
+                        }
+                    }
+            }
+        }
+
 }

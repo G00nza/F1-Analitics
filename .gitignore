@@ -9,6 +9,7 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -42,4 +43,6 @@ bridge/cache/
 .vscode/
 
 ### Mac OS ###
+.DS_Store.idea/
+planning/.DS_Store
 .DS_Store

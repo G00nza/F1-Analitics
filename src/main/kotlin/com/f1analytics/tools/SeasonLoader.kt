@@ -12,10 +12,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -75,8 +72,8 @@ fun main(args: Array<String>) = runBlocking {
                 it[SessionsTable.type]      = "RACE"
                 it[SessionsTable.year]      = year
                 it[SessionsTable.status]    = if (entry.date < today()) "Finished" else null
-                it[SessionsTable.dateStart] = null
-                it[SessionsTable.dateEnd]   = null
+                it[SessionsTable.dateStart] = entry.date.atTime(0, 0).toInstant(TimeZone.UTC)
+                it[SessionsTable.dateEnd]   = entry.date.atTime(0, 0).toInstant(TimeZone.UTC)
                 it[SessionsTable.recorded]  = false
             }
         }

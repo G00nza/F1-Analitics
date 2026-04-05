@@ -135,7 +135,7 @@ object HardcodedRaceData {
             WeekendSessionDto(9150, "Practice 2",  "FP2",        "FINISHED"),
             WeekendSessionDto(9151, "Practice 3",  "FP3",        "FINISHED"),
             WeekendSessionDto(9152, "Qualifying",  "QUALIFYING", "FINISHED"),
-            WeekendSessionDto(9153, "Race",        "RACE",       "FINISHED"),
+            WeekendSessionDto(20265003, "Race",        "RACE",       "FINISHED"),
         )
     )
 }

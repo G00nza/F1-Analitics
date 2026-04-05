@@ -7,6 +7,7 @@ import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.MeetingsView
+import com.f1analytics.com.f1analytics.api.views.SessionLapsView
 import com.f1analytics.core.config.AppConfig
 import com.f1analytics.core.service.LiveSessionService
 import com.f1analytics.core.service.LiveSessionStateManager
@@ -159,6 +160,7 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                 LatestSessionView(sessionResolver),
                 SessionStateView(stateManager),
                 MeetingsView(raceRepo, sessionRepo),
+                SessionLapsView(lapRepo, driverRepo, stintRepo, positionRepo),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )
             // F-08.1: Serve frontend SPA; index.html as fallback for client-side routing

@@ -5,6 +5,7 @@ import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
+import com.f1analytics.com.f1analytics.api.views.SessionLapsView
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.response.respond
@@ -21,6 +22,7 @@ fun Route.liveSessionRoutes(
     latestSessionView: LatestSessionView,
     sessionStateView: SessionStateView,
     meetingsView: MeetingsView,
+    sessionLapsView: SessionLapsView,
     isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
@@ -64,15 +66,15 @@ fun Route.liveSessionRoutes(
     }
 
     // F-09: Chart data endpoints (hardcoded stubs — real data wired in future epic)
-    get("/api/sessions/{key}/laps") {
-        call.respond(HttpStatusCode.OK, HardcodedRaceData.laps())
+    get("/api/sessions/{sessionKey}/laps") {
+        sessionLapsView.handle(call)
     }
 
-    get("/api/sessions/{key}/stints") {
+    get("/api/sessions/{sessionKey}/stints") {
         call.respond(HttpStatusCode.OK, HardcodedRaceData.stints())
     }
 
-    get("/api/sessions/{key}/positions") {
+    get("/api/sessions/{sessionKey}/positions") {
         call.respond(HttpStatusCode.OK, HardcodedRaceData.positions())
     }
 

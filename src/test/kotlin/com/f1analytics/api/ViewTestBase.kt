@@ -5,6 +5,7 @@ import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
+import com.f1analytics.com.f1analytics.api.views.SessionLapsView
 import com.f1analytics.core.domain.model.LiveSessionState
 import com.f1analytics.core.service.LiveSessionStateManager
 import com.f1analytics.core.service.SessionResolver
@@ -18,6 +19,7 @@ import com.f1analytics.data.db.repository.ExposedSessionDriverRepository
 import com.f1analytics.data.db.repository.ExposedSessionRepository
 import com.f1analytics.data.db.repository.ExposedStintRepository
 import com.f1analytics.data.db.repository.ExposedWeatherRepository
+import com.f1analytics.data.db.tables.LapsTable
 import com.f1analytics.data.db.tables.RacesTable
 import com.f1analytics.data.db.tables.SessionsTable
 import io.ktor.client.HttpClient
@@ -56,11 +58,11 @@ abstract class ViewTestBase {
         dateStart: String = "2026-03-16"
     ) = transaction(db) {
         RacesTable.insert {
-            it[RacesTable.key]       = key
-            it[RacesTable.name]      = name
-            it[RacesTable.circuit]   = circuit
-            it[RacesTable.year]      = year
-            it[RacesTable.round]     = round
+            it[RacesTable.key] = key
+            it[RacesTable.name] = name
+            it[RacesTable.circuit] = circuit
+            it[RacesTable.year] = year
+            it[RacesTable.round] = round
             it[RacesTable.dateStart] = dateStart
         }
     }
@@ -82,24 +84,54 @@ abstract class ViewTestBase {
         dateStart: Instant? = Instant.parse("2026-03-16T15:00:00Z")
     ) = transaction(db) {
         SessionsTable.insert {
-            it[SessionsTable.key]       = key
-            it[SessionsTable.raceKey]   = raceKey
-            it[SessionsTable.name]      = name
-            it[SessionsTable.type]      = type
-            it[SessionsTable.year]      = 2026
-            it[SessionsTable.status]    = status
+            it[SessionsTable.key] = key
+            it[SessionsTable.raceKey] = raceKey
+            it[SessionsTable.name] = name
+            it[SessionsTable.type] = type
+            it[SessionsTable.year] = 2026
+            it[SessionsTable.status] = status
             it[SessionsTable.dateStart] = dateStart
-            it[SessionsTable.recorded]  = recorded
+            it[SessionsTable.recorded] = recorded
+        }
+    }
+
+    protected fun insertLap(
+        sessionKey: Int = 9001,
+        driverNumber: String = "",
+        lapNumber: Int = 1,
+        lapTimeMs: Int? = 96458,
+        sector1Ms: Int? = null,
+        sector2Ms: Int? = 18163,
+        sector3Ms: Int? = 38796,
+        isPersonalBest: Boolean = false,
+        isOverallBest: Boolean = false,
+        pitOutLap: Boolean = false,
+        pitInLap: Boolean = false,
+        timestamp: Instant = Instant.parse("2026-03-16T15:00:00Z"),
+    ) = transaction(db) {
+        LapsTable.insert {
+            it[LapsTable.sessionKey] = sessionKey
+            it[LapsTable.driverNumber] = driverNumber
+            it[LapsTable.lapNumber] = lapNumber
+            it[LapsTable.lapTimeMs] = lapTimeMs
+            it[LapsTable.sector1Ms] = sector1Ms
+            it[LapsTable.sector2Ms] = sector2Ms
+            it[LapsTable.sector3Ms] = sector3Ms
+            it[LapsTable.isPersonalBest] = isPersonalBest
+            it[LapsTable.isOverallBest] = isOverallBest
+            it[LapsTable.pitOutLap] = pitOutLap
+            it[LapsTable.pitInLap] = pitInLap
+            it[LapsTable.timestamp] = timestamp
         }
     }
 
     protected fun makeStateManager() = LiveSessionStateManager(
-        driverRepo      = ExposedSessionDriverRepository(db),
-        lapRepo         = ExposedLapRepository(db),
-        stintRepo       = ExposedStintRepository(db),
+        driverRepo = ExposedSessionDriverRepository(db),
+        lapRepo = ExposedLapRepository(db),
+        stintRepo = ExposedStintRepository(db),
         raceControlRepo = ExposedRaceControlRepository(db),
-        weatherRepo     = ExposedWeatherRepository(db),
-        positionRepo    = ExposedPositionRepository(db)
+        weatherRepo = ExposedWeatherRepository(db),
+        positionRepo = ExposedPositionRepository(db)
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -116,11 +148,13 @@ abstract class ViewTestBase {
         install(ContentNegotiation) { json() }
         routing {
             liveSessionRoutes(
-                liveEventView     = LiveEventView(SseManager(stateManager)),
-                replayEventView   = ReplayEventView(ExposedReplayRepository(db)),
+                liveEventView = LiveEventView(SseManager(stateManager)),
+                replayEventView = ReplayEventView(ExposedReplayRepository(db)),
                 latestSessionView = LatestSessionView(SessionResolver(ExposedSessionRepository(db))),
-                sessionStateView  = SessionStateView(stateManager),
-                meetingsView      = MeetingsView(ExposedRaceRepository(db), ExposedSessionRepository(db))
+                sessionStateView = SessionStateView(stateManager),
+                meetingsView = MeetingsView(ExposedRaceRepository(db), ExposedSessionRepository(db)),
+                sessionLapsView = SessionLapsView(ExposedLapRepository(db), ExposedSessionDriverRepository(db), ExposedStintRepository(db), ExposedPositionRepository(db)),
+
             )
         }
         val jsonClient = createClient { install(ClientContentNegotiation) { json() } }

@@ -30,7 +30,7 @@ data class DriverEntry(
     val firstName: String?,
     val lastName: String?,
     val team: String?,
-    val teamColor: String?
+    val teamColor: String?,
 )
 
 /** Delta from a single TimingData update for one driver. All fields are nullable —

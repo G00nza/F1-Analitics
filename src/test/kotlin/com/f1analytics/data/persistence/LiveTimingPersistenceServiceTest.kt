@@ -79,6 +79,8 @@ class LiveTimingPersistenceServiceTest {
             insertSnapshotCalls += Triple(sessionKey, deltas, timestamp)
         }
         override suspend fun findLatestPositions(sessionKey: Int): Map<String, DriverPositionSnapshot> = emptyMap()
+
+        override suspend fun findAllPositionsByDriver(sessionKey: Int): Map<String, List<DriverPositionSnapshot>>  = emptyMap()
     }
 
     private class FakeTelemetryRepository : TelemetryRepository {
