@@ -7,6 +7,7 @@ import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.com.f1analytics.api.views.SessionLapsView
 import com.f1analytics.com.f1analytics.api.views.SessionPositionsView
+import com.f1analytics.com.f1analytics.api.views.SessionStintsView
 import com.f1analytics.core.domain.model.LiveSessionState
 import com.f1analytics.core.service.LiveSessionStateManager
 import com.f1analytics.core.service.SessionResolver
@@ -156,6 +157,7 @@ abstract class ViewTestBase {
                 meetingsView = MeetingsView(ExposedRaceRepository(db), ExposedSessionRepository(db)),
                 sessionLapsView = SessionLapsView(ExposedLapRepository(db), ExposedSessionDriverRepository(db), ExposedStintRepository(db), ExposedPositionRepository(db)),
                 sessionPositionsView = SessionPositionsView(ExposedSessionDriverRepository(db), ExposedPositionRepository(db)),
+                sessionStintsView = SessionStintsView(ExposedStintRepository(db), ExposedSessionDriverRepository(db)),
             )
         }
         val jsonClient = createClient { install(ClientContentNegotiation) { json() } }
