@@ -1,8 +1,9 @@
 """
 F1 Historical Backfill via FastF1
 
-Loads completed race sessions and writes laps, stints, telemetry, positions,
-weather, and race control messages into the local SQLite database.
+Loads completed sessions (FP1, FP2, FP3, Qualifying, Sprint Qualifying,
+Sprint, Race) and writes laps, stints, telemetry, positions, weather, and
+race control messages into the local SQLite database.
 
 Usage:
     python3 bridge/backfill.py                  # 2026, all completed rounds
@@ -10,6 +11,12 @@ Usage:
     python3 bridge/backfill.py 2025 3           # 2025, round 3 only
     python3 bridge/backfill.py 2025 all         # 2025, all rounds (explicit)
     python3 bridge/backfill.py 2025 3 --no-telemetry  # skip high-freq car data
+
+Session key convention (must match Kotlin helpers):
+    race_key     = year * 10_000 + round
+    session_key  = race_key + SESSION_OFFSET[session_type]
+        FP1 → +1000, FP2 → +2000, FP3 → +3000, Qualifying → +4000,
+        Race → +5000, Sprint Qualifying → +6000, Sprint → +7000
 """
 
 import argparse
@@ -18,7 +25,7 @@ import math
 import os
 import sqlite3
 import sys
-from datetime import timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import fastf1
@@ -44,14 +51,34 @@ DB_PATH    = SCRIPT_DIR.parent / "f1analytics.db"
 CACHE_DIR  = SCRIPT_DIR / "cache"
 
 # ---------------------------------------------------------------------------
-# Key helpers (must match Kotlin SeasonLoader conventions)
+# Session type mapping
+#
+# Key: FastF1 event session name (as returned by event["Session1"] etc.)
+# Value: (db_type, key_offset, fastf1_identifier)
+# ---------------------------------------------------------------------------
+
+SESSION_MAP: dict[str, tuple[str, int, str]] = {
+    "Practice 1":        ("FP1",               1000, "FP1"),
+    "Practice 2":        ("FP2",               2000, "FP2"),
+    "Practice 3":        ("FP3",               3000, "FP3"),
+    "Qualifying":        ("QUALIFYING",         4000, "Q"),
+    "Race":              ("RACE",               5000, "R"),
+    "Sprint Qualifying": ("SPRINT_QUALIFYING",  6000, "SQ"),
+    "Sprint Shootout":   ("SPRINT_QUALIFYING",  6000, "SS"),
+    "Sprint":            ("SPRINT",             7000, "S"),
+}
+
+# ---------------------------------------------------------------------------
+# Key helpers (must match Kotlin SeasonLoader/F1Cli conventions)
 # ---------------------------------------------------------------------------
 
 def race_key(year: int, round_num: int) -> int:
     return year * 10_000 + round_num
 
-def session_key(year: int, round_num: int) -> int:
-    return year * 10_000 + round_num + 5_000
+
+def session_key(year: int, round_num: int, offset: int = 5000) -> int:
+    """Compute the session key for a given session type offset."""
+    return year * 10_000 + round_num + offset
 
 # ---------------------------------------------------------------------------
 # Conversion helpers
@@ -137,41 +164,135 @@ def _ts(session_date, offset) -> str | None:
     except Exception:
         return None
 
+
+def _abs_ts(val) -> str | None:
+    """
+    Convert an absolute pandas Timestamp to a SQLite-compatible UTC timestamp.
+    Format: 'YYYY-MM-DD HH:MM:SS.ffffff' (space separator, no timezone suffix).
+    """
+    try:
+        if pd.isna(val):
+            return None
+    except (TypeError, ValueError):
+        pass
+    try:
+        ts = pd.Timestamp(val)
+        if ts.tzinfo is None:
+            ts = ts.tz_localize("UTC")
+        ts_utc = ts.tz_convert("UTC")
+        return ts_utc.strftime("%Y-%m-%d %H:%M:%S.%f")
+    except Exception:
+        return None
+
+# ---------------------------------------------------------------------------
+# DB helpers
+# ---------------------------------------------------------------------------
+
+def ensure_session_in_db(
+    con: sqlite3.Connection,
+    sk: int,
+    rk: int,
+    db_type: str,
+    year: int,
+    name: str,
+    session_date,
+) -> None:
+    """
+    Upsert a session row so foreign-key constraints are satisfied before
+    inserting lap/telemetry data. Marks the session as Finished and recorded=0
+    (backfilled, not live-captured).
+    """
+    dt_str = _abs_ts(session_date)
+    existing = con.execute("SELECT key FROM sessions WHERE key = ?", (sk,)).fetchone()
+    if existing:
+        con.execute(
+            "UPDATE sessions SET status = 'Finished', date_start = ?, date_end = ? WHERE key = ?",
+            (dt_str, dt_str, sk),
+        )
+    else:
+        con.execute(
+            "INSERT INTO sessions (key, race_key, name, type, year, status, date_start, date_end, recorded) "
+            "VALUES (?, ?, ?, ?, ?, 'Finished', ?, ?, 0)",
+            (sk, rk, name, db_type, year, dt_str, dt_str),
+        )
+
 # ---------------------------------------------------------------------------
 # Main backfill logic
 # ---------------------------------------------------------------------------
 
 def backfill_round(con: sqlite3.Connection, year: int, round_num: int, include_telemetry: bool) -> None:
-    sk = session_key(year, round_num)
+    rk = race_key(year, round_num)
 
-    # Check that the session exists in DB
-    row = con.execute("SELECT key, status FROM sessions WHERE key = ?", (sk,)).fetchone()
+    # Race entry must exist (created by 'f1 data init')
+    row = con.execute("SELECT key FROM races WHERE key = ?", (rk,)).fetchone()
     if row is None:
-        logger.warning("Session key %d not found in DB — run 'f1 data init' first", sk)
-        return
-    if row[1] != "Finished":
-        logger.info("Round %d is not finished yet (status=%s), skipping", round_num, row[1])
+        logger.warning("Race key %d not found in DB — run 'f1 data init' first", rk)
         return
 
-    logger.info("Loading FastF1 data for %d round %d…", year, round_num)
-    session = fastf1.get_session(year, round_num, "R")
-    session.load(laps=True, telemetry=include_telemetry, weather=True, messages=True)
-    logger.info("  FastF1 load complete — %d laps", len(session.laps))
+    # Discover all sessions for this round via FastF1
+    try:
+        event = fastf1.get_event(year, round_num)
+    except Exception as exc:
+        logger.error("Cannot load event for %d round %d: %s", year, round_num, exc)
+        return
 
-    session_date = session.date  # tz-aware start datetime
+    now_utc = datetime.now(timezone.utc)
 
-    with con:
-        _clear_session(con, sk)
-        _insert_drivers(con, sk, session)
-        _insert_laps(con, sk, session, session_date)
-        _insert_stints(con, sk, session)
-        _insert_weather(con, sk, session, session_date)
-        _insert_race_control(con, sk, session, session_date)
-        _insert_positions(con, sk, session, session_date)
-        if include_telemetry:
-            _insert_telemetry(con, sk, session, session_date)
+    for i in range(1, 6):
+        session_name = event.get(f"Session{i}")
+        session_date = event.get(f"Session{i}Date")
 
-    logger.info("  Round %d backfill complete", round_num)
+        if not session_name or not isinstance(session_name, str) or not session_name.strip():
+            continue
+        try:
+            if pd.isna(session_date):
+                continue
+        except (TypeError, ValueError):
+            pass
+
+        info = SESSION_MAP.get(session_name)
+        if info is None:
+            logger.warning("  Unknown session type '%s' — skipping", session_name)
+            continue
+
+        db_type, offset, f1_id = info
+        sk = session_key(year, round_num, offset)
+
+        # Only backfill sessions that have already taken place
+        try:
+            ts = pd.Timestamp(session_date)
+            if ts.tzinfo is None:
+                ts = ts.tz_localize("UTC")
+            if ts.to_pydatetime() > now_utc:
+                logger.info("  %s is in the future — skipping", session_name)
+                continue
+        except Exception:
+            pass
+
+        logger.info("Loading %s for %d round %d…", session_name, year, round_num)
+
+        try:
+            sess = fastf1.get_session(year, round_num, f1_id)
+            sess.load(laps=True, telemetry=include_telemetry, weather=True, messages=True)
+        except Exception as exc:
+            logger.warning("  Cannot load %s data: %s", session_name, exc)
+            continue
+
+        logger.info("  FastF1 load complete — %d laps", len(sess.laps))
+
+        with con:
+            ensure_session_in_db(con, sk, rk, db_type, year, session_name, session_date)
+            _clear_session(con, sk)
+            _insert_drivers(con, sk, sess)
+            _insert_laps(con, sk, sess, sess.date)
+            _insert_stints(con, sk, sess)
+            _insert_weather(con, sk, sess, sess.date)
+            _insert_race_control(con, sk, sess, sess.date)
+            _insert_positions(con, sk, sess, sess.date)
+            if include_telemetry:
+                _insert_telemetry(con, sk, sess, sess.date)
+
+        logger.info("  %s (round %d) backfill complete", session_name, round_num)
 
 
 def _clear_session(con: sqlite3.Connection, sk: int) -> None:
@@ -295,26 +416,6 @@ def _insert_weather(con: sqlite3.Connection, sk: int, session, session_date) -> 
     logger.info("  Weather: %d snapshots inserted", len(rows))
 
 
-def _abs_ts(val) -> str | None:
-    """
-    Convert an absolute pandas Timestamp to a SQLite-compatible UTC timestamp.
-    Format: 'YYYY-MM-DD HH:MM:SS.ffffff' (space separator, no timezone suffix).
-    """
-    try:
-        if pd.isna(val):
-            return None
-    except (TypeError, ValueError):
-        pass
-    try:
-        ts = pd.Timestamp(val)
-        if ts.tzinfo is None:
-            ts = ts.tz_localize("UTC")
-        ts_utc = ts.tz_convert("UTC")
-        return ts_utc.strftime("%Y-%m-%d %H:%M:%S.%f")
-    except Exception:
-        return None
-
-
 def _insert_race_control(con: sqlite3.Connection, sk: int, session, session_date) -> None:
     if session.race_control_messages is None or session.race_control_messages.empty:
         return
@@ -347,7 +448,7 @@ def _insert_race_control(con: sqlite3.Connection, sk: int, session, session_date
 
 
 def _insert_positions(con: sqlite3.Connection, sk: int, session, session_date) -> None:
-    """Persist race position per driver per completed lap (from laps DataFrame)."""
+    """Persist position per driver per completed lap (from laps DataFrame)."""
     laps = session.laps
     if "Position" not in laps.columns:
         return
