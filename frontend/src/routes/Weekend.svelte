@@ -5,20 +5,25 @@
   import PositionChart from '../components/charts/PositionChart.svelte';
   import GapChart from '../components/charts/GapChart.svelte';
 
-  let weekend = null;
-  let sessions = [];
-  let selectedKey = null;
-  let laps = [];
-  let stints = [];
-  let positions = [];
-  let loading = false;
-  let error = null;
+  const CHART_COMPONENTS = {
+    lapTimes: LapTimeChart,
+    positions: PositionChart,
+    gap: GapChart,
+    degradation: DegradationChart,
+  };
 
   const SESSION_LABELS = {
     FP1: 'Practice 1', FP2: 'Practice 2', FP3: 'Practice 3',
     QUALIFYING: 'Qualifying', RACE: 'Race',
     SPRINT: 'Sprint', SPRINT_QUALIFYING: 'Sprint Qualifying',
   };
+
+  let weekend = null;
+  let sessions = [];
+  let selectedKey = null;
+  let chartsData = null;
+  let loading = false;
+  let error = null;
 
   onMount(async () => {
     try {
@@ -38,15 +43,11 @@
   async function loadSession(key) {
     loading = true;
     error = null;
+    chartsData = null;
     try {
-      const [lapsRes, stintsRes, posRes] = await Promise.all([
-        fetch(`/api/sessions/${key}/laps`),
-        fetch(`/api/sessions/${key}/stints`),
-        fetch(`/api/sessions/${key}/positions`),
-      ]);
-      if (lapsRes.ok)   laps      = await lapsRes.json();
-      if (stintsRes.ok) stints    = await stintsRes.json();
-      if (posRes.ok)    positions = await posRes.json();
+      const res = await fetch(`/api/sessions/${key}/charts`);
+      if (!res.ok) throw new Error(res.statusText);
+      chartsData = await res.json();
     } catch (e) {
       error = 'Failed to load session data';
     } finally {
@@ -57,20 +58,8 @@
   async function selectSession(key) {
     if (key === selectedKey) return;
     selectedKey = key;
-    laps = []; stints = []; positions = [];
     await loadSession(key);
   }
-
-  // Best lap per driver for the table
-  $: bestLaps = (() => {
-    const byDriver = new Map();
-    for (const lap of laps) {
-      if (!lap.lapTimeMs || lap.pitOutLap || lap.pitInLap) continue;
-      const cur = byDriver.get(lap.driverNumber);
-      if (!cur || lap.lapTimeMs < cur.lapTimeMs) byDriver.set(lap.driverNumber, lap);
-    }
-    return [...byDriver.values()].sort((a, b) => (a.lapTimeMs ?? Infinity) - (b.lapTimeMs ?? Infinity));
-  })();
 
   let sortCol = 'lapTimeMs';
   let sortAsc = true;
@@ -80,12 +69,14 @@
     else { sortCol = col; sortAsc = true; }
   }
 
-  $: sortedBestLaps = [...bestLaps].sort((a, b) => {
-    const av = a[sortCol] ?? (sortAsc ? Infinity : -Infinity);
-    const bv = b[sortCol] ?? (sortAsc ? Infinity : -Infinity);
-    const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
-    return sortAsc ? cmp : -cmp;
-  });
+  $: sortedBestLaps = chartsData
+    ? [...chartsData.bestLaps].sort((a, b) => {
+        const av = a[sortCol] ?? (sortAsc ? Infinity : -Infinity);
+        const bv = b[sortCol] ?? (sortAsc ? Infinity : -Infinity);
+        const cmp = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+        return sortAsc ? cmp : -cmp;
+      })
+    : [];
 
   function fmtLap(ms) {
     if (!ms) return '--:--.---';
@@ -117,7 +108,7 @@
     <div class="state-msg">Loading…</div>
   {:else if error}
     <div class="state-msg error">{error}</div>
-  {:else if laps.length}
+  {:else if chartsData}
 
     <!-- Best lap times table -->
     <section class="section">
@@ -161,29 +152,13 @@
       </div>
     </section>
 
-    <!-- Lap time progression -->
-    <section class="section">
-      <h3 class="section-title">Lap Time Progression</h3>
-      <LapTimeChart {laps} />
-    </section>
-
-    <!-- Position chart -->
-    <section class="section">
-      <h3 class="section-title">Position Progression</h3>
-      <PositionChart {positions} />
-    </section>
-
-    <!-- Gap to leader -->
-    <section class="section">
-      <h3 class="section-title">Gap to Leader</h3>
-      <GapChart {laps} />
-    </section>
-
-    <!-- Tyre degradation -->
-    <section class="section">
-      <h3 class="section-title">Tyre Degradation</h3>
-      <DegradationChart {laps} {stints} />
-    </section>
+    <!-- Charts driven by backend -->
+    {#each chartsData.charts as chart}
+      <section class="section">
+        <h3 class="section-title">{chart.title}</h3>
+        <svelte:component this={CHART_COMPONENTS[chart.type]} datasets={chart.datasets} />
+      </section>
+    {/each}
 
   {:else}
     <div class="state-msg">No data available for this session.</div>

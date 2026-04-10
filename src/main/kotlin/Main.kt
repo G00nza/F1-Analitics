@@ -7,9 +7,7 @@ import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.MeetingsView
-import com.f1analytics.com.f1analytics.api.views.SessionLapsView
-import com.f1analytics.com.f1analytics.api.views.SessionPositionsView
-import com.f1analytics.com.f1analytics.api.views.SessionStintsView
+import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.com.f1analytics.api.views.WeekendView
 import com.f1analytics.core.config.AppConfig
 import com.f1analytics.core.service.LiveSessionService
@@ -170,9 +168,7 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                 LatestSessionView(sessionResolver),
                 SessionStateView(stateManager),
                 MeetingsView(raceRepo, sessionRepo),
-                SessionLapsView(lapRepo, driverRepo, stintRepo, positionRepo),
-                SessionPositionsView(driverRepo, positionRepo),
-                SessionStintsView(stintRepo, driverRepo),
+                SessionChartsView(lapRepo, driverRepo, stintRepo, positionRepo),
                 WeekendView(raceRepo, sessionRepo),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )

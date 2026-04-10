@@ -3,57 +3,32 @@
   import Chart from 'chart.js/auto';
   import { formatLapTime } from '../../lib/f1utils.js';
 
-  /** @type {Array} lap data from /api/sessions/{key}/laps */
-  export let laps = [];
+  /** @type {Array} pre-computed datasets from /api/sessions/{key}/charts */
+  export let datasets = [];
 
   let canvas;
   let chart = null;
 
-  $: if (chart && laps.length > 0) refreshChart(laps);
+  $: if (chart) {
+    chart.data.datasets = toChartDatasets(datasets);
+    chart.update('none');
+  }
 
-  function buildDatasets(lapData) {
-    const byDriver = new Map();
-    for (const lap of lapData) {
-      if (!byDriver.has(lap.driverNumber)) {
-        byDriver.set(lap.driverNumber, { code: lap.driverCode, color: lap.teamColor, laps: [] });
-      }
-      byDriver.get(lap.driverNumber).laps.push(lap);
-    }
-
-    return [...byDriver.values()].map(d => {
-      const sorted = [...d.laps].sort((a, b) => a.lapNumber - b.lapNumber);
-      const points = [];
+  function toChartDatasets(data) {
+    return data.map(d => {
       const radii = [];
       const bgColors = [];
       const borderColors = [];
 
-      for (const lap of sorted) {
-        // Insert a null gap before each out-lap to break the line at pit stops
-        if (lap.pitOutLap) {
-          points.push({ x: lap.lapNumber - 0.5, y: null });
-          radii.push(0);
-          bgColors.push('transparent');
-          borderColors.push('transparent');
-        }
-        points.push({
-          x: lap.lapNumber,
-          y: lap.lapTimeMs != null ? lap.lapTimeMs / 1000 : null,
-          pitOutLap: lap.pitOutLap,
-          isPersonalBest: lap.isPersonalBest,
-          compound: lap.compound,
-        });
-        radii.push(lap.isPersonalBest ? 6 : lap.pitOutLap ? 4 : 2);
-        bgColors.push(
-          lap.isPersonalBest ? '#BF5FFF' :
-          lap.pitOutLap       ? 'transparent' :
-          d.color
-        );
-        borderColors.push(lap.pitOutLap ? '#666' : d.color);
+      for (const p of d.points) {
+        radii.push(p.isPersonalBest ? 6 : p.pitOutLap ? 4 : (p.y == null ? 0 : 2));
+        bgColors.push(p.isPersonalBest ? '#BF5FFF' : p.pitOutLap ? 'transparent' : d.color);
+        borderColors.push(p.pitOutLap ? '#666' : d.color);
       }
 
       return {
-        label: d.code,
-        data: points,
+        label: d.label,
+        data: d.points,
         borderColor: d.color,
         backgroundColor: d.color + '18',
         borderWidth: 1.5,
@@ -68,16 +43,10 @@
     });
   }
 
-  function refreshChart(lapData) {
-    if (!chart) return;
-    chart.data.datasets = buildDatasets(lapData);
-    chart.update('none');
-  }
-
   onMount(() => {
     chart = new Chart(canvas, {
       type: 'line',
-      data: { datasets: [] },
+      data: { datasets: toChartDatasets(datasets) },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -123,8 +92,6 @@
         },
       },
     });
-
-    if (laps.length) refreshChart(laps);
   });
 
   onDestroy(() => chart?.destroy());

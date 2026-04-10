@@ -2,66 +2,37 @@
   import { onMount, onDestroy } from 'svelte';
   import Chart from 'chart.js/auto';
 
-  /** @type {Array} lap data from /api/sessions/{key}/laps (must include gapToLeaderMs) */
-  export let laps = [];
+  /** @type {Array} pre-computed datasets from /api/sessions/{key}/charts */
+  export let datasets = [];
 
   let canvas;
   let chart = null;
 
-  $: if (chart && laps.length > 0) refreshChart(laps);
-
-  function buildDatasets(lapData) {
-    const byDriver = new Map();
-    for (const lap of lapData) {
-      if (!byDriver.has(lap.driverNumber)) {
-        byDriver.set(lap.driverNumber, { code: lap.driverCode, color: lap.teamColor, entries: [] });
-      }
-      byDriver.get(lap.driverNumber).entries.push(lap);
-    }
-
-    return [...byDriver.values()].map(d => {
-      const sorted = [...d.entries].sort((a, b) => a.lapNumber - b.lapNumber);
-      const points = [];
-      const radii = [];
-
-      for (const lap of sorted) {
-        // null gapToLeaderMs means this driver is the leader (0s)
-        const gapSec = lap.gapToLeaderMs != null ? lap.gapToLeaderMs / 1000 : 0;
-        points.push({
-          x: lap.lapNumber,
-          y: gapSec,
-          pitOutLap: lap.pitOutLap,
-          pitInLap: lap.pitInLap,
-        });
-        radii.push(lap.pitOutLap || lap.pitInLap ? 4 : 2);
-      }
-
-      return {
-        label: d.code,
-        data: points,
-        borderColor: d.color,
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
-        tension: 0.1,
-        spanGaps: true,
-        pointRadius: radii,
-        pointHoverRadius: 5,
-        pointBackgroundColor: d.color,
-        pointBorderColor: d.color,
-      };
-    });
+  $: if (chart) {
+    chart.data.datasets = toChartDatasets(datasets);
+    chart.update('none');
   }
 
-  function refreshChart(lapData) {
-    if (!chart) return;
-    chart.data.datasets = buildDatasets(lapData);
-    chart.update('none');
+  function toChartDatasets(data) {
+    return data.map(d => ({
+      label: d.label,
+      data: d.points,
+      borderColor: d.color,
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      tension: 0.1,
+      spanGaps: true,
+      pointRadius: d.points.map(p => (p.pitOutLap || p.pitInLap) ? 4 : 2),
+      pointHoverRadius: 5,
+      pointBackgroundColor: d.color,
+      pointBorderColor: d.color,
+    }));
   }
 
   onMount(() => {
     chart = new Chart(canvas, {
       type: 'line',
-      data: { datasets: [] },
+      data: { datasets: toChartDatasets(datasets) },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -99,8 +70,6 @@
         },
       },
     });
-
-    if (laps.length) refreshChart(laps);
   });
 
   onDestroy(() => chart?.destroy());

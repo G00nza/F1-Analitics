@@ -2,51 +2,37 @@
   import { onMount, onDestroy } from 'svelte';
   import Chart from 'chart.js/auto';
 
-  /** @type {Array} position data from /api/sessions/{key}/positions */
-  export let positions = [];
+  /** @type {Array} pre-computed datasets from /api/sessions/{key}/charts */
+  export let datasets = [];
 
   let canvas;
   let chart = null;
 
-  $: if (chart && positions.length > 0) refreshChart(positions);
-
-  function buildDatasets(posData) {
-    const byDriver = new Map();
-    for (const p of posData) {
-      if (!byDriver.has(p.driverNumber)) {
-        byDriver.set(p.driverNumber, { code: p.driverCode, color: p.teamColor, entries: [] });
-      }
-      byDriver.get(p.driverNumber).entries.push(p);
-    }
-
-    return [...byDriver.values()].map(d => {
-      const sorted = [...d.entries].sort((a, b) => a.lapNumber - b.lapNumber);
-      return {
-        label: d.code,
-        data: sorted.map(e => ({ x: e.lapNumber, y: e.position })),
-        borderColor: d.color,
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        tension: 0.15,
-        spanGaps: true,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        pointBackgroundColor: d.color,
-        pointBorderColor: d.color,
-      };
-    });
+  $: if (chart) {
+    chart.data.datasets = toChartDatasets(datasets);
+    chart.update('none');
   }
 
-  function refreshChart(posData) {
-    if (!chart) return;
-    chart.data.datasets = buildDatasets(posData);
-    chart.update('none');
+  function toChartDatasets(data) {
+    return data.map(d => ({
+      label: d.label,
+      data: d.points,
+      borderColor: d.color,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      tension: 0.15,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      pointBackgroundColor: d.color,
+      pointBorderColor: d.color,
+    }));
   }
 
   onMount(() => {
     chart = new Chart(canvas, {
       type: 'line',
-      data: { datasets: [] },
+      data: { datasets: toChartDatasets(datasets) },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -83,8 +69,6 @@
         },
       },
     });
-
-    if (positions.length) refreshChart(positions);
   });
 
   onDestroy(() => chart?.destroy());

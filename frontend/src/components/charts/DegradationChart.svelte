@@ -2,10 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import Chart from 'chart.js/auto';
 
-  /** @type {Array} lap data from /api/sessions/{key}/laps */
-  export let laps = [];
-  /** @type {Array} stint data from /api/sessions/{key}/stints */
-  export let stints = [];
+  /** @type {Array} pre-computed datasets from /api/sessions/{key}/charts */
+  export let datasets = [];
 
   let canvas;
   let chart = null;
@@ -13,62 +11,33 @@
 
   const COMPOUNDS = ['ALL', 'SOFT', 'MEDIUM', 'HARD', 'INTER', 'WET'];
 
-  $: datasets = buildDatasets(laps, stints, selectedCompound);
+  $: filtered = selectedCompound === 'ALL'
+    ? datasets
+    : datasets.filter(d => d.compound === selectedCompound);
+
   $: if (chart) {
-    chart.data.datasets = datasets;
+    chart.data.datasets = toChartDatasets(filtered);
     chart.update('none');
   }
 
-  function buildDatasets(lapData, stintData, compound) {
-    if (!lapData.length || !stintData.length) return [];
-
-    // Index laps by driverNumber-stintNumber
-    const lapMap = new Map();
-    for (const lap of lapData) {
-      const key = `${lap.driverNumber}-${lap.stintNumber}`;
-      if (!lapMap.has(key)) lapMap.set(key, []);
-      lapMap.get(key).push(lap);
-    }
-
-    const result = [];
-    for (const stint of stintData) {
-      if (compound !== 'ALL' && stint.compound !== compound) continue;
-
-      const key = `${stint.driverNumber}-${stint.stintNumber}`;
-      const validLaps = (lapMap.get(key) || [])
-        .filter(l => !l.pitOutLap && !l.pitInLap && l.lapTimeMs != null)
-        .sort((a, b) => a.lapNumber - b.lapNumber);
-
-      // Only show stints with more than 5 valid laps
-      if (validLaps.length <= 5) continue;
-
-      const baseLapMs = validLaps[0].lapTimeMs;
-      const color = validLaps[0].teamColor;
-
-      result.push({
-        label: `${stint.driverCode} S${stint.stintNumber} (${stint.compound})`,
-        data: validLaps.map((l, i) => ({
-          x: i + 1,
-          y: (l.lapTimeMs - baseLapMs) / 1000,
-          lapNumber: l.lapNumber,
-          compound: l.compound,
-        })),
-        borderColor: color,
-        backgroundColor: color + '18',
-        borderWidth: 1.5,
-        tension: 0.3,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        pointBackgroundColor: color,
-      });
-    }
-    return result;
+  function toChartDatasets(data) {
+    return data.map(d => ({
+      label: d.label,
+      data: d.points,
+      borderColor: d.color,
+      backgroundColor: d.color + '18',
+      borderWidth: 1.5,
+      tension: 0.3,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      pointBackgroundColor: d.color,
+    }));
   }
 
   onMount(() => {
     chart = new Chart(canvas, {
       type: 'line',
-      data: { datasets: [] },
+      data: { datasets: toChartDatasets(filtered) },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -103,11 +72,6 @@
         },
       },
     });
-
-    if (datasets.length) {
-      chart.data.datasets = datasets;
-      chart.update('none');
-    }
   });
 
   onDestroy(() => chart?.destroy());

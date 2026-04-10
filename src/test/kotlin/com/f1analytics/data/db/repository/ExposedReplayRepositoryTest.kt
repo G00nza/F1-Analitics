@@ -117,13 +117,13 @@ class ExposedReplayRepositoryTest : RepositoryTestBase() {
     @Test
     fun `findAllEventsBySession returns events sorted by timestamp`() = runTest {
         ExposedRaceControlRepository(db).insert(
-            sessionKey, TimingMessage.RaceControlMsg("THIRD"), t3
+            sessionKey, TimingMessage.RaceControlMsg("THIRD", null, null, null), t3
         )
         ExposedPositionRepository(db).insertSnapshot(
             sessionKey, mapOf("1" to DriverTimingDelta(position = 1, gapToLeader = "LEADER")), t1
         )
         ExposedRaceControlRepository(db).insert(
-            sessionKey, TimingMessage.RaceControlMsg("SECOND"), t2
+            sessionKey, TimingMessage.RaceControlMsg("SECOND", null, null, null), t2
         )
 
         val events = repo.findAllEventsBySession(sessionKey)
@@ -134,7 +134,7 @@ class ExposedReplayRepositoryTest : RepositoryTestBase() {
     @Test
     fun `findAllEventsBySession returns empty list for unknown session`() = runTest {
         ExposedRaceControlRepository(db).insert(
-            sessionKey, TimingMessage.RaceControlMsg("TEST"), t1
+            sessionKey, TimingMessage.RaceControlMsg("TEST", null, null, null), t1
         )
 
         assertTrue(repo.findAllEventsBySession(9999).isEmpty())

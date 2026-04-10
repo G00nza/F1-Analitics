@@ -4,10 +4,8 @@ import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
+import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.SessionStateView
-import com.f1analytics.com.f1analytics.api.views.SessionLapsView
-import com.f1analytics.com.f1analytics.api.views.SessionPositionsView
-import com.f1analytics.com.f1analytics.api.views.SessionStintsView
 import com.f1analytics.com.f1analytics.api.views.WeekendView
 import com.f1analytics.core.domain.model.LiveSessionState
 import com.f1analytics.core.service.LiveSessionStateManager
@@ -156,9 +154,12 @@ abstract class ViewTestBase {
                 latestSessionView = LatestSessionView(SessionResolver(ExposedSessionRepository(db))),
                 sessionStateView = SessionStateView(stateManager),
                 meetingsView = MeetingsView(ExposedRaceRepository(db), ExposedSessionRepository(db)),
-                sessionLapsView = SessionLapsView(ExposedLapRepository(db), ExposedSessionDriverRepository(db), ExposedStintRepository(db), ExposedPositionRepository(db)),
-                sessionPositionsView = SessionPositionsView(ExposedSessionDriverRepository(db), ExposedPositionRepository(db)),
-                sessionStintsView = SessionStintsView(ExposedStintRepository(db), ExposedSessionDriverRepository(db)),
+                sessionChartsView = SessionChartsView(
+                    ExposedLapRepository(db),
+                    ExposedSessionDriverRepository(db),
+                    ExposedStintRepository(db),
+                    ExposedPositionRepository(db)
+                ),
                 weekendView = WeekendView(ExposedRaceRepository(db), ExposedSessionRepository(db)),
             )
         }
