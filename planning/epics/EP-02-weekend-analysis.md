@@ -33,9 +33,9 @@ LEC (FER)  Posición:     P1       P3       P2       P2       P2
 ```
 
 **Criterios de aceptación:**
-- [ ] Muestra solo sesiones con datos disponibles
-- [ ] Colores para destacar mejor posición por piloto en cada sesión
-- [ ] Funciona con fin de semana en curso (parcialmente completo)
+- [x] Muestra solo sesiones con datos disponibles
+- [x] Colores para destacar mejor posición por piloto en cada sesión
+- [x] Funciona con fin de semana en curso (parcialmente completo)
 
 ---
 
