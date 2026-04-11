@@ -19,14 +19,16 @@ class ExposedWeatherRepositoryTest : RepositoryTestBase() {
     private val t2 = Instant.parse("2024-03-02T16:00:02Z")
 
     @BeforeTest
-    fun insertSession() = transaction(db) {
-        SessionsTable.insert {
-            it[key]      = sessionKey
-            it[raceKey]  = 1
-            it[name]     = "Race"
-            it[type]     = "RACE"
-            it[year]     = 2024
-            it[recorded] = true
+    fun insertSession() {
+        transaction(db) {
+            SessionsTable.insert {
+                it[key]      = sessionKey
+                it[raceKey]  = 1
+                it[name]     = "Race"
+                it[type]     = "RACE"
+                it[year]     = 2024
+                it[recorded] = true
+            }
         }
     }
 

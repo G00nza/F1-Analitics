@@ -1,9 +1,8 @@
 package com.f1analytics.data.db.repository
 
+import com.f1analytics.core.domain.model.DriverTimingDelta
 import com.f1analytics.core.domain.model.TimingMessage
 import com.f1analytics.core.domain.model.WeatherData
-import com.f1analytics.core.domain.model.DriverTimingDelta
-import com.f1analytics.data.db.tables.LapsTable
 import com.f1analytics.data.db.tables.SessionsTable
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
@@ -24,14 +23,16 @@ class ExposedReplayRepositoryTest : RepositoryTestBase() {
     private val t3 = Instant.parse("2024-03-02T16:00:03Z")
 
     @BeforeTest
-    fun insertSession() = transaction(db) {
-        SessionsTable.insert {
-            it[key]      = sessionKey
-            it[raceKey]  = 1
-            it[name]     = "Race"
-            it[type]     = "RACE"
-            it[year]     = 2024
-            it[recorded] = true
+    fun insertSession() {
+        transaction(db) {
+            SessionsTable.insert {
+                it[key]      = sessionKey
+                it[raceKey]  = 1
+                it[name]     = "Race"
+                it[type]     = "RACE"
+                it[year]     = 2024
+                it[recorded] = true
+            }
         }
     }
 
@@ -74,22 +75,11 @@ class ExposedReplayRepositoryTest : RepositoryTestBase() {
 
     @Test
     fun `findAllEventsBySession includes lap_completed events only for laps with lapTimeMs`() = runTest {
-        transaction(db) {
-            LapsTable.insert {
-                it[LapsTable.sessionKey]   = sessionKey
-                it[LapsTable.driverNumber] = "1"
-                it[LapsTable.lapNumber]    = 1
-                it[LapsTable.lapTimeMs]    = 95000
-                it[LapsTable.timestamp]    = t1
-            }
-            LapsTable.insert {
-                it[LapsTable.sessionKey]   = sessionKey
-                it[LapsTable.driverNumber] = "1"
-                it[LapsTable.lapNumber]    = 2
-                it[LapsTable.lapTimeMs]    = null  // pit-in lap — should be excluded
-                it[LapsTable.timestamp]    = t2
-            }
-        }
+        val lapRepo = ExposedLapRepository(db)
+        // Lap 1: has lapTimeMs — should appear as lap_completed event
+        lapRepo.upsertDeltas(sessionKey, mapOf("1" to DriverTimingDelta(lapNumber = 1, lastLapTimeMs = 95000)), t1)
+        // Lap 2: no lapTimeMs (pit-in lap) — should be excluded
+        lapRepo.upsertDeltas(sessionKey, mapOf("1" to DriverTimingDelta(lapNumber = 2)), t2)
 
         val events = repo.findAllEventsBySession(sessionKey)
 
