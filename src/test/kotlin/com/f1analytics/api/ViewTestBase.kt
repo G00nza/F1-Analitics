@@ -1,9 +1,11 @@
 package com.f1analytics.api
 
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LatestSessionView
+import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
@@ -28,6 +30,7 @@ import com.f1analytics.data.db.tables.LapsTable
 import com.f1analytics.data.db.tables.RacesTable
 import com.f1analytics.data.db.tables.SessionDriversTable
 import com.f1analytics.data.db.tables.SessionsTable
+import com.f1analytics.data.db.tables.StintsTable
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
@@ -131,6 +134,24 @@ abstract class ViewTestBase {
         }
     }
 
+    protected fun insertStint(
+        sessionKey: Int,
+        driverNumber: String,
+        stintNumber: Int = 1,
+        compound: String? = null,
+        lapStart: Int? = null,
+        lapEnd: Int? = null
+    ) = transaction(db) {
+        StintsTable.insert {
+            it[StintsTable.sessionKey]   = sessionKey
+            it[StintsTable.driverNumber] = driverNumber
+            it[StintsTable.stintNumber]  = stintNumber
+            it[StintsTable.compound]     = compound
+            it[StintsTable.lapStart]     = lapStart
+            it[StintsTable.lapEnd]       = lapEnd
+        }
+    }
+
     protected fun insertSessionDriver(
         sessionKey: Int,
         number: String,
@@ -194,6 +215,13 @@ abstract class ViewTestBase {
                     ExposedRaceRepository(db),
                     BuildLapTimeProgressionUseCase(
                         ExposedSessionRepository(db),
+                        ExposedLapRepository(db),
+                        ExposedSessionDriverRepository(db),
+                    )
+                ),
+                tyreDegradationView = TyreDegradationView(
+                    BuildTyreDegradationUseCase(
+                        ExposedStintRepository(db),
                         ExposedLapRepository(db),
                         ExposedSessionDriverRepository(db),
                     )

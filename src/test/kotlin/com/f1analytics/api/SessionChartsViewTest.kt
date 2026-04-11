@@ -3,7 +3,6 @@ package com.f1analytics.api
 import com.f1analytics.api.dto.SessionChartsDto
 import com.f1analytics.data.db.tables.PositionSnapshotsTable
 import com.f1analytics.data.db.tables.SessionDriversTable
-import com.f1analytics.data.db.tables.StintsTable
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -28,24 +27,6 @@ class SessionChartsViewTest : ViewTestBase() {
             it[SessionDriversTable.number]     = number
             it[SessionDriversTable.code]       = code
             it[SessionDriversTable.teamColor]  = teamColor
-        }
-    }
-
-    private fun insertStint(
-        sessionKey: Int,
-        driverNumber: String,
-        stintNumber: Int,
-        compound: String? = null,
-        lapStart: Int? = null,
-        lapEnd: Int? = null
-    ) = transaction(db) {
-        StintsTable.insert {
-            it[StintsTable.sessionKey]   = sessionKey
-            it[StintsTable.driverNumber] = driverNumber
-            it[StintsTable.stintNumber]  = stintNumber
-            it[StintsTable.compound]     = compound
-            it[StintsTable.lapStart]     = lapStart
-            it[StintsTable.lapEnd]       = lapEnd
         }
     }
 

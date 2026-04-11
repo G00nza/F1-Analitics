@@ -81,9 +81,9 @@ LEC     | MEDIUM   | 15         | 1:32.801  | 1:34.512  | +0.114s/lap
 ```
 
 **Criterios de aceptación:**
-- [ ] Filtrar out-laps e in-laps del cálculo
-- [ ] Separar claramente runs cortos (qualifying sim) de runs largos (race sim)
-- [ ] Disponible solo para sesiones con datos de stints (OpenF1 2023+)
+- [x] Filtrar out-laps e in-laps del cálculo
+- [x] Separar claramente runs cortos (qualifying sim) de runs largos (race sim)
+- [x] Disponible solo para sesiones con datos de stints (OpenF1 2023+)
 
 ---
 
