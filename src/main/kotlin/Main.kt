@@ -7,7 +7,9 @@ import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.MeetingsView
+import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.WeekendSummaryView
 import com.f1analytics.com.f1analytics.api.views.WeekendView
@@ -175,6 +177,10 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                 WeekendSummaryView(
                     raceRepo,
                     BuildWeekendSummaryUseCase(sessionRepo, lapRepo, driverRepo)
+                ),
+                LapTimeProgressionView(
+                    raceRepo,
+                    BuildLapTimeProgressionUseCase(sessionRepo, lapRepo, driverRepo)
                 ),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )

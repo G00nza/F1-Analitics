@@ -1,6 +1,8 @@
 package com.f1analytics.api
 
+import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.MeetingsView
@@ -183,6 +185,14 @@ abstract class ViewTestBase {
                 weekendSummaryView = WeekendSummaryView(
                     ExposedRaceRepository(db),
                     BuildWeekendSummaryUseCase(
+                        ExposedSessionRepository(db),
+                        ExposedLapRepository(db),
+                        ExposedSessionDriverRepository(db),
+                    )
+                ),
+                lapTimeProgressionView = LapTimeProgressionView(
+                    ExposedRaceRepository(db),
+                    BuildLapTimeProgressionUseCase(
                         ExposedSessionRepository(db),
                         ExposedLapRepository(db),
                         ExposedSessionDriverRepository(db),

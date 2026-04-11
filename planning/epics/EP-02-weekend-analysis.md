@@ -58,8 +58,8 @@ HAM     | 1:32.800   | 1:32.650   | 1:32.100   | 1:29.982   | -2.818s ↓
 ```
 
 **Criterios de aceptación:**
-- [ ] Alinea tiempos por sesión type (no por timestamp)
-- [ ] Distingue simulación de clasificación vs ritmo de carrera en FP (difícil automáticamente — marcar con advertencia)
+- [x] Alinea tiempos por sesión type (no por timestamp)
+- [x] Distingue simulación de clasificación vs ritmo de carrera en FP (difícil automáticamente — marcar con advertencia)
 
 ---
 
