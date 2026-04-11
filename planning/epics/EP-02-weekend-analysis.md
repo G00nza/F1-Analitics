@@ -101,8 +101,8 @@ TOTAL   | 83.134 | 81.179  | -1.955 ↓
 ```
 
 **Criterios de aceptación:**
-- [ ] Compara siempre el best lap de cada sesión
-- [ ] Identifica el sector donde más mejoró y donde menos mejoró
+- [x] Compara siempre el best lap de cada sesión
+- [x] Identifica el sector donde más mejoró y donde menos mejoró
 
 ---
 

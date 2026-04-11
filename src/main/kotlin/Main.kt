@@ -8,9 +8,11 @@ import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.WeekendSummaryView
@@ -186,6 +188,9 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                 ),
                 TyreDegradationView(
                     BuildTyreDegradationUseCase(stintRepo, lapRepo, driverRepo)
+                ),
+                SectorComparisonView(
+                    BuildSectorComparisonUseCase(lapRepo, driverRepo)
                 ),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )

@@ -1,9 +1,11 @@
 package com.f1analytics.api
 
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.LiveEventView
@@ -222,6 +224,12 @@ abstract class ViewTestBase {
                 tyreDegradationView = TyreDegradationView(
                     BuildTyreDegradationUseCase(
                         ExposedStintRepository(db),
+                        ExposedLapRepository(db),
+                        ExposedSessionDriverRepository(db),
+                    )
+                ),
+                sectorComparisonView = SectorComparisonView(
+                    BuildSectorComparisonUseCase(
                         ExposedLapRepository(db),
                         ExposedSessionDriverRepository(db),
                     )
