@@ -7,7 +7,10 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.usecase.BuildSafetyCarLiveUseCase
+import com.f1analytics.api.usecase.BuildSafetyCarReviewUseCase
 import com.f1analytics.api.views.DriverWatchlistView
+import com.f1analytics.api.views.SafetyCarImpactView
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.PreRaceStrategyView
@@ -39,6 +42,7 @@ import com.f1analytics.data.db.repository.ExposedStrategyAlertRepository
 import com.f1analytics.data.db.repository.ExposedStintRepository
 import com.f1analytics.data.db.repository.ExposedWeatherRepository
 import com.f1analytics.data.db.tables.LapsTable
+import com.f1analytics.data.db.tables.PositionSnapshotsTable
 import com.f1analytics.data.db.tables.RaceControlMessagesTable
 import com.f1analytics.data.db.tables.RacesTable
 import com.f1analytics.data.db.tables.SessionDriversTable
@@ -197,6 +201,20 @@ abstract class ViewTestBase {
         }
     }
 
+    protected fun insertPositionSnapshot(
+        sessionKey: Int,
+        driverNumber: String,
+        position: Int?,
+        timestamp: Instant = Instant.parse("2026-03-16T15:00:00Z")
+    ) = transaction(db) {
+        PositionSnapshotsTable.insert {
+            it[PositionSnapshotsTable.sessionKey]   = sessionKey
+            it[PositionSnapshotsTable.driverNumber] = driverNumber
+            it[PositionSnapshotsTable.position]     = position
+            it[PositionSnapshotsTable.timestamp]    = timestamp
+        }
+    }
+
     protected fun makeStateManager() = LiveSessionStateManager(
         driverRepo = ExposedSessionDriverRepository(db),
         lapRepo = ExposedLapRepository(db),
@@ -298,6 +316,19 @@ abstract class ViewTestBase {
                 strategyAlertsView = StrategyAlertsView(
                     ExposedStrategyAlertRepository(db),
                     ExposedSessionDriverRepository(db),
+                ),
+                safetyCarImpactView = SafetyCarImpactView(
+                    stateManager,
+                    BuildSafetyCarLiveUseCase(
+                        ExposedStintRepository(db),
+                        ExposedSessionDriverRepository(db),
+                    ),
+                    BuildSafetyCarReviewUseCase(
+                        ExposedRaceControlRepository(db),
+                        ExposedStintRepository(db),
+                        ExposedSessionDriverRepository(db),
+                        ExposedPositionRepository(db),
+                    ),
                 ),
             )
         }

@@ -120,9 +120,9 @@ If VER stays out: risk losing position to pitting drivers ⚠️
 ```
 
 **Criterios de aceptación:**
-- [ ] Alerta inmediata cuando OpenF1 reporta Safety Car en Race Control
-- [ ] Cálculo automático de quién se beneficia de parar bajo SC
-- [ ] Post-carrera: análisis de qué equipos capitalizaron el SC correctamente
+- [x] Alerta inmediata cuando OpenF1 reporta Safety Car en Race Control
+- [x] Cálculo automático de quién se beneficia de parar bajo SC
+- [x] Post-carrera: análisis de qué equipos capitalizaron el SC correctamente
 
 ---
 

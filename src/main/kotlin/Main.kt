@@ -14,6 +14,8 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.usecase.BuildSafetyCarLiveUseCase
+import com.f1analytics.api.usecase.BuildSafetyCarReviewUseCase
 import com.f1analytics.api.usecase.DetectUndercutOvercutUseCase
 import com.f1analytics.api.views.DriverWatchlistView
 import com.f1analytics.api.views.LapTimeProgressionView
@@ -21,6 +23,7 @@ import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.PreRaceStrategyView
 import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
+import com.f1analytics.api.views.SafetyCarImpactView
 import com.f1analytics.api.views.StrategyAlertsView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.SessionChartsView
@@ -229,6 +232,11 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                 ),
                 DriverWatchlistView(settingsRepo),
                 StrategyAlertsView(strategyAlertRepo, driverRepo),
+                SafetyCarImpactView(
+                    stateManager,
+                    BuildSafetyCarLiveUseCase(stintRepo, driverRepo),
+                    BuildSafetyCarReviewUseCase(raceControlRepo, stintRepo, driverRepo, positionRepo),
+                ),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )
             // F-08.1: Serve frontend SPA; index.html as fallback for client-side routing

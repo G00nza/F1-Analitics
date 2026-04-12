@@ -7,6 +7,7 @@ import com.f1analytics.data.db.tables.PositionSnapshotsTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -79,4 +80,18 @@ class ExposedPositionRepository(private val db: Database) : PositionRepository {
             }
         }
 
+    override suspend fun findPositionAtTimestamp(sessionKey: Int, timestamp: Instant): Map<String, Int?> =
+        withContext(Dispatchers.IO) {
+            transaction(db) {
+                PositionSnapshotsTable.selectAll()
+                    .where {
+                        (PositionSnapshotsTable.sessionKey eq sessionKey) and
+                        (PositionSnapshotsTable.timestamp lessEq timestamp)
+                    }
+                    .orderBy(PositionSnapshotsTable.timestamp, SortOrder.DESC)
+                    .toList()
+                    .groupBy { it[PositionSnapshotsTable.driverNumber] }
+                    .mapValues { (_, rows) -> rows.first()[PositionSnapshotsTable.position] }
+            }
+        }
 }
