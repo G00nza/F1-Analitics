@@ -3,6 +3,7 @@ package com.f1analytics.api.usecase.charts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TyreDegradationAnalyzerTest {
@@ -82,5 +83,47 @@ class TyreDegradationAnalyzerTest {
     @Test
     fun `isLongRun returns false for fewer than 5 laps`() {
         assertFalse(TyreDegradationAnalyzer.isLongRun(3))
+    }
+
+    // ── calculateDegRate ──────────────────────────────────────────────────────
+
+    @Test
+    fun `calculateDegRate returns null when fewer than 2 laps`() {
+        val single = listOf(lap(lapNumber = 1, lapTimeMs = 90000))
+        assertNull(TyreDegradationAnalyzer.calculateDegRate(single))
+        assertNull(TyreDegradationAnalyzer.calculateDegRate(emptyList()))
+    }
+
+    @Test
+    fun `calculateDegRate computes rate as ms increase per lap`() {
+        // 3 laps: 90000, 90200, 90400 → delta per lap = (90400 - 90000) / 2 = 200
+        val laps = listOf(
+            lap(lapNumber = 1, lapTimeMs = 90000),
+            lap(lapNumber = 2, lapTimeMs = 90200),
+            lap(lapNumber = 3, lapTimeMs = 90400),
+        )
+        assertEquals(200.0, TyreDegradationAnalyzer.calculateDegRate(laps))
+    }
+
+    @Test
+    fun `calculateDegRate caps negative rate to zero when laps improve`() {
+        val laps = listOf(
+            lap(lapNumber = 1, lapTimeMs = 91000),
+            lap(lapNumber = 2, lapTimeMs = 90500),
+            lap(lapNumber = 3, lapTimeMs = 90000),
+        )
+        assertEquals(0.0, TyreDegradationAnalyzer.calculateDegRate(laps))
+    }
+
+    @Test
+    fun `calculateDegRate sorts by lapNumber before computing`() {
+        // Input is out of order: lap 3 first, lap 1 last
+        val laps = listOf(
+            lap(lapNumber = 3, lapTimeMs = 90400),
+            lap(lapNumber = 1, lapTimeMs = 90000),
+            lap(lapNumber = 2, lapTimeMs = 90200),
+        )
+        // Should sort → first=90000, last=90400 → (90400-90000)/2 = 200
+        assertEquals(200.0, TyreDegradationAnalyzer.calculateDegRate(laps))
     }
 }

@@ -27,18 +27,20 @@ class BuildPreRaceStrategyUseCase(
         val DRY_COMPOUNDS = setOf("SOFT", "MEDIUM", "HARD")
         val COMPOUND_CANONICAL_ORDER = listOf("SOFT", "MEDIUM", "HARD")
         private const val PIT_WINDOW_RADIUS = 2
-        private val FP_SESSION_TYPES = setOf(SessionType.FP2, SessionType.FP3)
+        private const val PIT_TIME_MS = 23_000.0
+        private val FP_SESSION_TYPES = setOf(SessionType.FP1, SessionType.FP2, SessionType.FP3, SessionType.SPRINT)
     }
 
     suspend fun execute(raceKey: Int, totalLaps: Int): PreRaceStrategyDto {
-        val allSessions = sessionRepository.findByRace(raceKey)
-        val fpSessions = allSessions.filter { it.type in FP_SESSION_TYPES }
+        val sessions = sessionRepository.findByRace(raceKey)
+        val sessionsWithStints = sessions.filter { it.type in FP_SESSION_TYPES }
 
-        if (fpSessions.isEmpty()) {
+        if (sessionsWithStints.isEmpty()) {
             return PreRaceStrategyDto(raceKey, totalLaps, hasData = false, drivers = emptyList())
         }
 
-        val allDrivers = allSessions
+        val allDrivers = sessions
+            .filter { it.type == SessionType.RACE }
             .flatMap { sessionDriverRepository.findBySession(it.key) }
             .distinctBy { it.number }
 
@@ -46,7 +48,7 @@ class BuildPreRaceStrategyUseCase(
             return PreRaceStrategyDto(raceKey, totalLaps, hasData = false, drivers = emptyList())
         }
 
-        val rawRates = collectRawDegRates(fpSessions)
+        val rawRates = collectRawDegRates(sessionsWithStints)
 
         val driverStrategies = allDrivers.mapNotNull { driver ->
             val rates = DRY_COMPOUNDS.mapNotNull { compound ->
@@ -55,17 +57,19 @@ class BuildPreRaceStrategyUseCase(
 
             if (rates.size < 2) return@mapNotNull null
 
-            val expected = generateOneStopStrategy(rates, totalLaps) ?: return@mapNotNull null
-            val alt = if (rates.size >= 3) generateTwoStopStrategy(rates, totalLaps) else null
+            val oneStop = generateBestOneStop(rates, totalLaps) ?: return@mapNotNull null
+            val twoStop = generateBestTwoStop(rates, totalLaps)
+
+            val (expectedStrategy, altStrategy) = selectStrategies(oneStop, twoStop, rates)
 
             DriverStrategyDto(
                 driverNumber = driver.number,
                 driverCode = driver.code,
                 team = driver.team,
-                expectedStrategy = expected,
-                altStrategy = alt
+                expectedStrategy = expectedStrategy,
+                altStrategy = altStrategy
             )
-        }
+        }.sortedByDescending { it.team }
 
         return PreRaceStrategyDto(
             raceKey = raceKey,
@@ -75,10 +79,10 @@ class BuildPreRaceStrategyUseCase(
         )
     }
 
-    private suspend fun collectRawDegRates(fpSessions: List<Session>): Map<String, Map<String, Double>> {
+    private suspend fun collectRawDegRates(sessions: List<Session>): Map<String, Map<String, Double>> {
         val accumulator = mutableMapOf<String, MutableMap<String, MutableList<Double>>>()
 
-        for (session in fpSessions) {
+        for (session in sessions) {
             val flaggedLaps = raceControlRepository.findBySession(session.key)
                 .filter { it.flag in TyreDegradationAnalyzer.SLOW_FLAGS }
                 .mapNotNull { it.lap }
@@ -100,7 +104,7 @@ class BuildPreRaceStrategyUseCase(
 
                 if (!TyreDegradationAnalyzer.isLongRun(valid.size)) continue
 
-                val degPerLapMs = (valid.last().lapTimeMs!! - valid.first().lapTimeMs!!).toDouble() / (valid.size - 1)
+                val degPerLapMs = TyreDegradationAnalyzer.calculateDegRate(valid) ?: continue
                 accumulator
                     .getOrPut(stint.driverNumber) { mutableMapOf() }
                     .getOrPut(compound) { mutableListOf() }
@@ -119,8 +123,10 @@ class BuildPreRaceStrategyUseCase(
         rawRates: Map<String, Map<String, Double>>,
         allDrivers: List<DriverEntry>
     ): Double? {
+        // 1. Driver's own data
         rawRates[driverNumber]?.get(compound)?.let { return it }
 
+        // 2. Teammate's data for this compound
         val team = allDrivers.find { it.number == driverNumber }?.team
         if (team != null) {
             val teammateRates = allDrivers
@@ -129,28 +135,35 @@ class BuildPreRaceStrategyUseCase(
             if (teammateRates.isNotEmpty()) return teammateRates.average()
         }
 
+        // 3. Global average for this compound across all drivers
         val globalRates = rawRates.entries
             .filter { it.key != driverNumber }
             .mapNotNull { it.value[compound] }
         if (globalRates.isNotEmpty()) return globalRates.average()
 
+        // 4. No team ran this compound — use average of all available rates as proxy
+        val globalAllRates = rawRates.values.flatMap { it.values }
+        if (globalAllRates.isNotEmpty()) return globalAllRates.average()
+
         return null
     }
 
-    private fun generateOneStopStrategy(rates: Map<String, Double>, totalLaps: Int): List<StrategyStintDto>? {
+    /** Returns the best 1-stop strategy (2 stints). */
+    private fun generateBestOneStop(rates: Map<String, Double>, totalLaps: Int): List<StrategyStintDto>? {
         val compounds = rates.keys.toList()
         if (compounds.size < 2) return null
 
         val pairs = compounds.flatMap { a -> compounds.filter { it != a }.map { b -> a to b } }
 
         val best = pairs.minWithOrNull(
-            compareBy<Pair<String, String>> { (c1, c2) -> totalDegCost(rates[c1]!!, rates[c2]!!, totalLaps) }
-                .thenByDescending { (c1, _) -> rates[c1]!! }
-                .thenBy { (c1, _) -> COMPOUND_CANONICAL_ORDER.indexOf(c1).takeIf { it >= 0 } ?: Int.MAX_VALUE }
+            compareBy<Pair<String, String>> { (c1, c2) ->
+                oneStopTotalCost(c1, c2, rates, totalLaps)
+            }.thenByDescending { (c1, _) -> rates[c1]!! }
+            .thenBy { (c1, _) -> COMPOUND_CANONICAL_ORDER.indexOf(c1).takeIf { it >= 0 } ?: Int.MAX_VALUE }
         ) ?: return null
 
         val (c1, c2) = best
-        val pitLap = optimalPitLap(rates[c1]!!, rates[c2]!!, totalLaps)
+        val pitLap = optimalPitLap(rates[c1]!!, rates[c2]!!, baseTime(c1), baseTime(c2), totalLaps)
 
         return listOf(
             StrategyStintDto(c1, pitLap, pitWindow(pitLap, totalLaps)),
@@ -158,26 +171,29 @@ class BuildPreRaceStrategyUseCase(
         )
     }
 
-    private fun generateTwoStopStrategy(rates: Map<String, Double>, totalLaps: Int): List<StrategyStintDto>? {
+    /** Returns the best 2-stop strategy (3 stints). Repeated compounds are allowed except all-same triples. */
+    private fun generateBestTwoStop(rates: Map<String, Double>, totalLaps: Int): List<StrategyStintDto>? {
         val compounds = rates.keys.toList()
-        if (compounds.size < 3) return null
+        if (compounds.size < 2) return null
 
-        val triples = compounds.flatMap { a ->
-            compounds.filter { it != a }.flatMap { b ->
-                compounds.filter { it != a && it != b }.map { c -> Triple(a, b, c) }
+        val sequences = compounds.flatMap { a ->
+            compounds.flatMap { b ->
+                compounds.map { c -> Triple(a, b, c) }
             }
-        }
+        }.filter { (a, b, c) -> !(a == b && b == c) }
 
-        val best = triples.minWithOrNull(
+        val best = sequences.minWithOrNull(
             compareBy<Triple<String, String, String>> { (c1, c2, c3) ->
-                twoStopDegCost(rates[c1]!!, rates[c2]!!, rates[c3]!!, totalLaps)
+                twoStopTotalCost(c1, c2, c3, rates, totalLaps)
             }.thenByDescending { (c1, _, _) -> rates[c1]!! }
             .thenBy { (c1, _, _) -> COMPOUND_CANONICAL_ORDER.indexOf(c1).takeIf { it >= 0 } ?: Int.MAX_VALUE }
         ) ?: return null
 
         val (c1, c2, c3) = best
-        val p1 = optimalPitLap(rates[c1]!!, rates[c2]!! + rates[c3]!!, totalLaps).coerceIn(5, totalLaps - 10)
-        val p2 = (p1 + optimalPitLap(rates[c2]!!, rates[c3]!!, totalLaps - p1)).coerceIn(p1 + 5, totalLaps - 5)
+        val p1 = optimalPitLap(rates[c1]!!, rates[c2]!! + rates[c3]!!, baseTime(c1), baseTime(c2) + baseTime(c3), totalLaps)
+            .coerceIn(5, totalLaps - 10)
+        val p2 = (p1 + optimalPitLap(rates[c2]!!, rates[c3]!!, baseTime(c2), baseTime(c3), totalLaps - p1))
+            .coerceIn(p1 + 5, totalLaps - 5)
 
         return listOf(
             StrategyStintDto(c1, p1, pitWindow(p1, totalLaps)),
@@ -186,24 +202,65 @@ class BuildPreRaceStrategyUseCase(
         )
     }
 
-    private fun optimalPitLap(deg1: Double, deg2: Double, totalLaps: Int): Int {
+    /**
+     * Selects which strategy is expected (faster) and which is the alternative.
+     * Total cost includes degradation, compound base times, and pit stop time per stop.
+     */
+    private fun selectStrategies(
+        oneStop: List<StrategyStintDto>,
+        twoStop: List<StrategyStintDto>?,
+        rates: Map<String, Double>
+    ): Pair<List<StrategyStintDto>, List<StrategyStintDto>?> {
+        if (twoStop == null) return oneStop to null
+
+        val oneStopCost = fullRaceCost(oneStop, rates)
+        val twoStopCost = fullRaceCost(twoStop, rates)
+
+        return if (twoStopCost < oneStopCost) twoStop to oneStop else oneStop to twoStop
+    }
+
+    /** Total race cost: sum of stint costs + pit stop time per pit. */
+    private fun fullRaceCost(stints: List<StrategyStintDto>, rates: Map<String, Double>): Double {
+        val stintCost = stints.sumOf { stintTotalCost(it.compound, it.laps, rates[it.compound] ?: 0.0) }
+        val pitCost = (stints.size - 1) * PIT_TIME_MS
+        return stintCost + pitCost
+    }
+
+    /** Cost of a single stint: compound base time penalty per lap + degradation accumulation. */
+    private fun stintTotalCost(compound: String, laps: Int, degPerLap: Double): Double {
+        val basePenalty = baseTime(compound) * laps
+        val degCost = laps * (laps + 1) / 2.0 * degPerLap
+        return basePenalty + degCost
+    }
+
+    private fun oneStopTotalCost(c1: String, c2: String, rates: Map<String, Double>, totalLaps: Int): Double {
+        val p = optimalPitLap(rates[c1]!!, rates[c2]!!, baseTime(c1), baseTime(c2), totalLaps)
+        return stintTotalCost(c1, p, rates[c1]!!) + stintTotalCost(c2, totalLaps - p, rates[c2]!!)
+    }
+
+    private fun twoStopTotalCost(c1: String, c2: String, c3: String, rates: Map<String, Double>, totalLaps: Int): Double {
+        val p1 = optimalPitLap(rates[c1]!!, rates[c2]!! + rates[c3]!!, baseTime(c1), baseTime(c2) + baseTime(c3), totalLaps)
+            .coerceIn(5, totalLaps - 10)
+        val p2 = (p1 + optimalPitLap(rates[c2]!!, rates[c3]!!, baseTime(c2), baseTime(c3), totalLaps - p1))
+            .coerceIn(p1 + 5, totalLaps - 5)
+        return stintTotalCost(c1, p1, rates[c1]!!) +
+            stintTotalCost(c2, p2 - p1, rates[c2]!!) +
+            stintTotalCost(c3, totalLaps - p2, rates[c3]!!)
+    }
+
+    /**
+     * Optimal pit lap derived from d(cost)/dp = 0, accounting for both degradation rates
+     * and compound base time difference between the two stints.
+     */
+    private fun optimalPitLap(deg1: Double, deg2: Double, base1: Double, base2: Double, totalLaps: Int): Int {
         val total = deg1 + deg2
         if (total == 0.0) return totalLaps / 2
-        return (totalLaps * deg2 / total).roundToInt().coerceIn(5, totalLaps - 5)
+        val numerator = deg2 * totalLaps + (base2 - base1)
+        return (numerator / total).roundToInt().coerceIn(5, totalLaps - 5)
     }
 
-    private fun totalDegCost(deg1: Double, deg2: Double, totalLaps: Int): Double {
-        val p = optimalPitLap(deg1, deg2, totalLaps)
-        return stintDegCost(deg1, p) + stintDegCost(deg2, totalLaps - p)
-    }
-
-    private fun twoStopDegCost(deg1: Double, deg2: Double, deg3: Double, totalLaps: Int): Double {
-        val p1 = optimalPitLap(deg1, deg2 + deg3, totalLaps).coerceIn(5, totalLaps - 10)
-        val p2 = (p1 + optimalPitLap(deg2, deg3, totalLaps - p1)).coerceIn(p1 + 5, totalLaps - 5)
-        return stintDegCost(deg1, p1) + stintDegCost(deg2, p2 - p1) + stintDegCost(deg3, totalLaps - p2)
-    }
-
-    private fun stintDegCost(degPerLap: Double, laps: Int): Double = laps * (laps + 1) / 2.0 * degPerLap
+    private fun baseTime(compound: String): Double =
+        TyreDegradationAnalyzer.COMPOUND_BASE_TIME_MS[compound] ?: 0.0
 
     private fun pitWindow(pitLap: Int, totalLaps: Int) = PitWindowDto(
         lapFrom = (pitLap - PIT_WINDOW_RADIUS).coerceAtLeast(1),
