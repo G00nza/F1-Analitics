@@ -1,5 +1,6 @@
 package com.f1analytics.api
 
+import com.f1analytics.api.views.DriverWatchlistView
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
 import com.f1analytics.api.views.LiveStrategyTrackerView
@@ -11,6 +12,7 @@ import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
+import com.f1analytics.api.views.StrategyAlertsView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.WeekendSummaryView
 import com.f1analytics.com.f1analytics.api.views.WeekendView
@@ -19,6 +21,7 @@ import io.ktor.server.application.call
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.put
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -39,6 +42,8 @@ fun Route.liveSessionRoutes(
     sectorComparisonView: SectorComparisonView,
     preRaceStrategyView: PreRaceStrategyView,
     liveStrategyTrackerView: LiveStrategyTrackerView,
+    driverWatchlistView: DriverWatchlistView,
+    strategyAlertsView: StrategyAlertsView,
     isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
@@ -108,5 +113,25 @@ fun Route.liveSessionRoutes(
 
     get("/api/sessions/{sessionKey}/strategy/tracker") {
         liveStrategyTrackerView.handle(call)
+    }
+
+    get("/api/strategy/watchlist") {
+        driverWatchlistView.handleGetGlobal(call)
+    }
+
+    put("/api/strategy/watchlist") {
+        driverWatchlistView.handleSetGlobal(call)
+    }
+
+    get("/api/sessions/{sessionKey}/strategy/watchlist") {
+        driverWatchlistView.handleGetSession(call)
+    }
+
+    put("/api/sessions/{sessionKey}/strategy/watchlist") {
+        driverWatchlistView.handleSetSession(call)
+    }
+
+    get("/api/sessions/{sessionKey}/strategy/alerts") {
+        strategyAlertsView.handle(call)
     }
 }

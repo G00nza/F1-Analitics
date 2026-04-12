@@ -2,6 +2,19 @@ package com.f1analytics.core.domain.model
 
 import kotlinx.datetime.Instant
 
+data class StrategyAlert(
+    val id: Int,
+    val sessionKey: Int,
+    val lap: Int?,
+    val type: String,               // UNDERCUT | OVERCUT
+    val instigatorNumber: String,
+    val rivalNumber: String,
+    val gapSeconds: Double?,
+    val predictedOutcome: String?,
+    val confirmedOutcome: String?,
+    val timestamp: Instant
+)
+
 data class Session(
     val key: Int,
     val raceKey: Int?,

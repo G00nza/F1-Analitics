@@ -203,3 +203,31 @@ object DriverStandingsTable : Table("driver_standings") {
         uniqueIndex("standings_unique_year_round_driver", year, afterRound, driverCode)
     }
 }
+
+// ── Settings (key-value store) ─────────────────────────────────────────────
+
+object SettingsTable : Table("settings") {
+    val key   = text("key")
+    val value = text("value")
+    override val primaryKey = PrimaryKey(key)
+}
+
+// ── Strategy alerts (undercut/overcut) ────────────────────────────────────
+
+object StrategyAlertsTable : Table("strategy_alerts") {
+    val id               = integer("id").autoIncrement()
+    val sessionKey       = integer("session_key").references(SessionsTable.key)
+    val lap              = integer("lap").nullable()
+    val type             = text("type")               // UNDERCUT | OVERCUT
+    val instigatorNumber = text("instigator_number")
+    val rivalNumber      = text("rival_number")
+    val gapSeconds       = double("gap_seconds").nullable()
+    val predictedOutcome = text("predicted_outcome").nullable()
+    val confirmedOutcome = text("confirmed_outcome").nullable()
+    val timestamp        = timestamp("timestamp")
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        index("idx_strategy_alerts_session", isUnique = false, sessionKey)
+    }
+}

@@ -14,11 +14,14 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.usecase.DetectUndercutOvercutUseCase
+import com.f1analytics.api.views.DriverWatchlistView
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.PreRaceStrategyView
 import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
+import com.f1analytics.api.views.StrategyAlertsView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.WeekendSummaryView
@@ -28,6 +31,7 @@ import com.f1analytics.core.service.LiveSessionService
 import com.f1analytics.core.service.LiveSessionStateManager
 import com.f1analytics.core.service.SessionResolver
 import com.f1analytics.core.service.SessionWatcher
+import com.f1analytics.core.service.UndercutOvercutDetectionService
 import com.f1analytics.data.bridge.BridgeProcess
 import com.f1analytics.data.db.DatabaseFactory
 import com.f1analytics.data.db.repository.*
@@ -84,6 +88,8 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
     val positionRepo     = ExposedPositionRepository(db)
     val telemetryRepo    = ExposedTelemetryRepository(db)
     val replayRepo       = ExposedReplayRepository(db)
+    val settingsRepo     = ExposedSettingsRepository(db)
+    val strategyAlertRepo = ExposedStrategyAlertRepository(db)
 
     // ── Services ────────────────────────────────────────────────────────────────
     val config           = AppConfig()
@@ -140,6 +146,16 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
     // F-00.4: Session watcher
     val sessionWatcher = SessionWatcher(sessionRepo, stateManager, sseManager, appScope)
     sessionWatcher.start()
+
+    // F-03.3: Undercut/overcut detection service
+    val undercutService = UndercutOvercutDetectionService(
+        stateManager          = stateManager,
+        settingsRepository    = settingsRepo,
+        strategyAlertRepository = strategyAlertRepo,
+        detectUseCase         = DetectUndercutOvercutUseCase(),
+        scope                 = appScope
+    )
+    undercutService.start()
 
     // ── Print access URLs ───────────────────────────────────────────────────────
     val devMode = System.getProperty("f1.dev") == "true"
@@ -211,6 +227,8 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                     stateManager,
                     BuildLiveStrategyTrackerUseCase(sessionRepo, stintRepo, lapRepo, driverRepo, raceControlRepo)
                 ),
+                DriverWatchlistView(settingsRepo),
+                StrategyAlertsView(strategyAlertRepo, driverRepo),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )
             // F-08.1: Serve frontend SPA; index.html as fallback for client-side routing

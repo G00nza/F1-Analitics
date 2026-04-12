@@ -7,6 +7,7 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.views.DriverWatchlistView
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.PreRaceStrategyView
@@ -19,6 +20,7 @@ import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.SessionStateView
+import com.f1analytics.api.views.StrategyAlertsView
 import com.f1analytics.api.views.WeekendSummaryView
 import com.f1analytics.com.f1analytics.api.views.WeekendView
 import com.f1analytics.core.domain.model.LiveSessionState
@@ -32,6 +34,8 @@ import com.f1analytics.data.db.repository.ExposedRaceRepository
 import com.f1analytics.data.db.repository.ExposedReplayRepository
 import com.f1analytics.data.db.repository.ExposedSessionDriverRepository
 import com.f1analytics.data.db.repository.ExposedSessionRepository
+import com.f1analytics.data.db.repository.ExposedSettingsRepository
+import com.f1analytics.data.db.repository.ExposedStrategyAlertRepository
 import com.f1analytics.data.db.repository.ExposedStintRepository
 import com.f1analytics.data.db.repository.ExposedWeatherRepository
 import com.f1analytics.data.db.tables.LapsTable
@@ -287,6 +291,13 @@ abstract class ViewTestBase {
                         ExposedSessionDriverRepository(db),
                         ExposedRaceControlRepository(db),
                     )
+                ),
+                driverWatchlistView = DriverWatchlistView(
+                    ExposedSettingsRepository(db)
+                ),
+                strategyAlertsView = StrategyAlertsView(
+                    ExposedStrategyAlertRepository(db),
+                    ExposedSessionDriverRepository(db),
                 ),
             )
         }

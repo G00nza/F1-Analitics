@@ -20,7 +20,9 @@ private val allTables = arrayOf(
     PositionSnapshotsTable,
     CarTelemetryTable,
     RaceResultsTable,
-    DriverStandingsTable
+    DriverStandingsTable,
+    SettingsTable,
+    StrategyAlertsTable
 )
 
 object DatabaseFactory {

@@ -92,11 +92,11 @@ Predicted outcome: NOR P3 after pit stop window closes
 ```
 
 **Criterios de aceptación:**
-- [ ] Configuración global de favoritos persistente en settings
-- [ ] Selector de conductores editable antes y durante la carrera
-- [ ] El detector solo actúa sobre pares donde al menos un conductor está en la lista activa
-- [ ] Alerta visual en el live viewer cuando se detecta un undercut o overcut en curso
-- [ ] Post-carrera: listar todos los undercuts/overcuts detectados (solo de conductores monitorizados) con resultado
+- [x] Configuración global de favoritos persistente en settings
+- [x] Selector de conductores editable antes y durante la carrera
+- [x] El detector solo actúa sobre pares donde al menos un conductor está en la lista activa
+- [x] Alerta visual en el live viewer cuando se detecta un undercut o overcut en curso
+- [x] Post-carrera: listar todos los undercuts/overcuts detectados (solo de conductores monitorizados) con resultado
 
 ---
 
