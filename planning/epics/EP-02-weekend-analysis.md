@@ -3,7 +3,7 @@
 **Iteración**: 1
 **Prioridad**: Alta
 **Dependencias**: EP-01, EP-00 (datos de al menos 2 sesiones del mismo fin de semana)
-**Estado**: Pendiente
+**Estado**: Finzalizada
 
 ## Descripción
 Ver cómo evolucionó el rendimiento de cada piloto y equipo a través del fin de semana completo: FP1 → FP2 → FP3 → Qualifying → Carrera. Identificar quién llegó al sábado con el setup correcto, quién mejoró, quién sorprende.
