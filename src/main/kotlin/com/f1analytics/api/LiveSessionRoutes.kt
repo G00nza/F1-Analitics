@@ -1,6 +1,7 @@
 package com.f1analytics.api
 
 import com.f1analytics.api.views.DriverWatchlistView
+import com.f1analytics.api.views.PostRaceStrategyView
 import com.f1analytics.api.views.SafetyCarImpactView
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
@@ -46,6 +47,7 @@ fun Route.liveSessionRoutes(
     driverWatchlistView: DriverWatchlistView,
     strategyAlertsView: StrategyAlertsView,
     safetyCarImpactView: SafetyCarImpactView,
+    postRaceStrategyView: PostRaceStrategyView,
     isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
@@ -143,5 +145,9 @@ fun Route.liveSessionRoutes(
 
     get("/api/sessions/{sessionKey}/strategy/safety-car/review") {
         safetyCarImpactView.handleReview(call)
+    }
+
+    get("/api/sessions/{sessionKey}/strategy/post-race") {
+        postRaceStrategyView.handle(call)
     }
 }

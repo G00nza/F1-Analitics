@@ -104,6 +104,16 @@ class ExposedSessionRepository(private val db: Database) : SessionRepository {
         }
     }
 
+    override suspend fun findLatestRace(): Session? = withContext(Dispatchers.IO) {
+        transaction(db) {
+            SessionsTable.selectAll()
+                .where { SessionsTable.type eq SessionType.RACE.name }
+                .orderBy(SessionsTable.dateStart, SortOrder.DESC_NULLS_LAST)
+                .firstOrNull()
+                ?.toSession()
+        }
+    }
+
     override suspend fun findByRace(raceKey: Int): List<Session> = withContext(Dispatchers.IO) {
         transaction(db) {
             SessionsTable.selectAll()

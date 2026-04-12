@@ -7,9 +7,11 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.usecase.BuildPostRaceStrategyUseCase
 import com.f1analytics.api.usecase.BuildSafetyCarLiveUseCase
 import com.f1analytics.api.usecase.BuildSafetyCarReviewUseCase
 import com.f1analytics.api.views.DriverWatchlistView
+import com.f1analytics.api.views.PostRaceStrategyView
 import com.f1analytics.api.views.SafetyCarImpactView
 import com.f1analytics.api.views.LapTimeProgressionView
 import com.f1analytics.api.views.LiveStrategyTrackerView
@@ -316,6 +318,17 @@ abstract class ViewTestBase {
                 strategyAlertsView = StrategyAlertsView(
                     ExposedStrategyAlertRepository(db),
                     ExposedSessionDriverRepository(db),
+                ),
+                postRaceStrategyView = PostRaceStrategyView(
+                    BuildPostRaceStrategyUseCase(
+                        ExposedSessionRepository(db),
+                        ExposedRaceRepository(db),
+                        ExposedStintRepository(db),
+                        ExposedSessionDriverRepository(db),
+                        ExposedPositionRepository(db),
+                        ExposedRaceControlRepository(db),
+                        ExposedStrategyAlertRepository(db),
+                    )
                 ),
                 safetyCarImpactView = SafetyCarImpactView(
                     stateManager,

@@ -1,6 +1,15 @@
 package com.f1analytics
 
+import com.f1analytics.api.usecase.BuildPostRaceStrategyUseCase
 import com.f1analytics.data.db.DatabaseFactory
+import com.f1analytics.data.db.repository.ExposedLapRepository
+import com.f1analytics.data.db.repository.ExposedPositionRepository
+import com.f1analytics.data.db.repository.ExposedRaceControlRepository
+import com.f1analytics.data.db.repository.ExposedRaceRepository
+import com.f1analytics.data.db.repository.ExposedSessionDriverRepository
+import com.f1analytics.data.db.repository.ExposedSessionRepository
+import com.f1analytics.data.db.repository.ExposedStintRepository
+import com.f1analytics.data.db.repository.ExposedStrategyAlertRepository
 import com.f1analytics.data.db.tables.DriverStandingsTable
 import com.f1analytics.data.db.tables.RaceResultsTable
 import com.f1analytics.data.db.tables.RacesTable
@@ -34,7 +43,7 @@ private val logger = KotlinLogging.logger {}
 
 class F1Cli(private val rawArgs: Array<String>) : CliktCommand(name = "f1", invokeWithoutSubcommand = true) {
     init {
-        subcommands(ServeCommand(), DataCommand())
+        subcommands(ServeCommand(), DataCommand(), StrategyCommand())
     }
 
     override fun run() {
@@ -241,6 +250,92 @@ class DataBackfillCommand : CliktCommand(
         val exit = process.waitFor()
         if (exit != 0) {
             echo("Backfill exited with code $exit", err = true)
+        }
+    }
+}
+
+class StrategyCommand : CliktCommand(name = "strategy", help = "Strategy analysis commands") {
+    override fun run() = Unit
+    init {
+        subcommands(StrategyReviewCommand())
+    }
+}
+
+class StrategyReviewCommand : CliktCommand(name = "review", help = "Print post-race strategy review for the latest race") {
+    override fun run() = runBlocking {
+        val db = DatabaseFactory.init()
+        val sessionRepo = ExposedSessionRepository(db)
+
+        val session = sessionRepo.findLatestRace()
+        if (session == null) {
+            echo("No race session found in the database.", err = true)
+            return@runBlocking
+        }
+
+        val useCase = BuildPostRaceStrategyUseCase(
+            sessionRepository       = sessionRepo,
+            raceRepository          = ExposedRaceRepository(db),
+            stintRepository         = ExposedStintRepository(db),
+            sessionDriverRepository = ExposedSessionDriverRepository(db),
+            positionRepository      = ExposedPositionRepository(db),
+            raceControlRepository   = ExposedRaceControlRepository(db),
+            strategyAlertRepository = ExposedStrategyAlertRepository(db),
+        )
+
+        val review = useCase.execute(session.key)
+
+        echo("=== Post-Race Strategy Review ===")
+        echo("Race: ${review.raceName ?: "Unknown"}")
+        echo("Session: ${review.sessionName ?: "Unknown"} (key=${review.sessionKey})")
+        echo("")
+
+        echo("--- Driver Strategies ---")
+        review.drivers.sortedBy { it.finalPosition ?: Int.MAX_VALUE }.forEach { d ->
+            val pos = d.finalPosition?.let { "P$it" } ?: "DNF"
+            val code = d.driverCode ?: d.driverNumber
+            val stintSummary = d.stints.joinToString(" → ") { s ->
+                val compound = s.compound ?: "?"
+                val laps = s.laps?.let { "${it}L" } ?: "?"
+                "$compound($laps)"
+            }
+            echo("  $pos  ${code.padEnd(3)}  ${d.stops}-stop  $stintSummary")
+        }
+        echo("")
+
+        echo("--- Strategy Comparison ---")
+        listOf(
+            "1-stop"  to review.strategyComparison.oneStop,
+            "2-stop"  to review.strategyComparison.twoStop,
+            "3+-stop" to review.strategyComparison.threeOrMore,
+        ).forEach { (label, group) ->
+            if (group != null) {
+                val avg = group.avgFinishPosition?.let { String.format("%.1f", it) } ?: "N/A"
+                echo("  $label: ${group.driverCount} drivers, avg finish P$avg  [${group.drivers.joinToString(", ")}]")
+            }
+        }
+        echo("")
+
+        if (review.undercutResults.isNotEmpty()) {
+            echo("--- Undercut Results ---")
+            review.undercutResults.forEach { u ->
+                val instigator = u.instigatorCode ?: "?"
+                val rival = u.rivalCode ?: "?"
+                val lap = u.lap?.let { "lap $it" } ?: "?"
+                val outcome = if ((u.instigatorFinalPosition ?: Int.MAX_VALUE) < (u.rivalFinalPosition ?: Int.MAX_VALUE))
+                    "SUCCESS" else "FAILED"
+                echo("  $instigator vs $rival @ $lap → $outcome (P${u.instigatorFinalPosition} vs P${u.rivalFinalPosition})")
+            }
+            echo("")
+        }
+
+        if (review.scBeneficiaries.isNotEmpty()) {
+            echo("--- Safety Car Beneficiaries ---")
+            review.scBeneficiaries.forEach { b ->
+                val code = b.driverCode ?: "?"
+                val gained = b.positionsGained?.let { "+$it" } ?: "?"
+                echo("  ${code.padEnd(3)}  SC lap ${b.scLap}  P${b.positionAtSc} → P${b.finalPosition}  ($gained positions)")
+            }
+            echo("")
         }
     }
 }

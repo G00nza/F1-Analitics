@@ -14,6 +14,7 @@ import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
+import com.f1analytics.api.usecase.BuildPostRaceStrategyUseCase
 import com.f1analytics.api.usecase.BuildSafetyCarLiveUseCase
 import com.f1analytics.api.usecase.BuildSafetyCarReviewUseCase
 import com.f1analytics.api.usecase.DetectUndercutOvercutUseCase
@@ -23,6 +24,7 @@ import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.PreRaceStrategyView
 import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
+import com.f1analytics.api.views.PostRaceStrategyView
 import com.f1analytics.api.views.SafetyCarImpactView
 import com.f1analytics.api.views.StrategyAlertsView
 import com.f1analytics.api.views.TyreDegradationView
@@ -236,6 +238,12 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                     stateManager,
                     BuildSafetyCarLiveUseCase(stintRepo, driverRepo),
                     BuildSafetyCarReviewUseCase(raceControlRepo, stintRepo, driverRepo, positionRepo),
+                ),
+                PostRaceStrategyView(
+                    BuildPostRaceStrategyUseCase(
+                        sessionRepo, raceRepo, stintRepo, driverRepo,
+                        positionRepo, raceControlRepo, strategyAlertRepo
+                    )
                 ),
                 isSessionActive = { stateManager.stateFlow.value != null }
             )

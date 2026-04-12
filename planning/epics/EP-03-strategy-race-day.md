@@ -3,7 +3,7 @@
 **Iteración**: 2
 **Prioridad**: Alta
 **Dependencias**: EP-01, EP-02
-**Estado**: Pendiente
+**Estado**: Completo
 
 ## Descripción
 Análisis de estrategia antes y durante la carrera: predicción de ventanas de pit stop, análisis de stints en tiempo real, undercuts, overcuts y impacto del safety car.
@@ -151,8 +151,8 @@ Safety Car (Lap 31) beneficiary: ALO
 ```
 
 **Criterios de aceptación:**
-- [ ] Disponible inmediatamente después de que termina la sesión
-- [ ] Accessible via `f1 strategy review` sin argumentos para la última carrera
+- [x] Disponible inmediatamente después de que termina la sesión
+- [x] Accessible via `f1 strategy review` sin argumentos para la última carrera
 
 ---
 
