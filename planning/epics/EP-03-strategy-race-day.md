@@ -63,10 +63,10 @@ SAI    |  P  | —        |    —       | —          | —           | IN PIT
 - **Real window**: ventana ajustada en tiempo real usando la degradación actual del stint (delta de tiempos de vuelta reales vs baseline)
 
 **Criterios de aceptación:**
-- [ ] Integrado como pestaña adicional del live viewer (EP-00)
-- [ ] Actualización en tiempo real con los datos de stints de OpenF1
-- [ ] Marcar "OVERDUE" cuando el piloto lleva más vueltas que la ventana real
-- [ ] Mostrar ambas columnas (FP window y Real window) con diferencia visual cuando divergen significativamente (>2 vueltas)
+- [x] Integrado como pestaña adicional del live viewer (EP-00)
+- [x] Actualización en tiempo real con los datos de stints de OpenF1
+- [x] Marcar "OVERDUE" cuando el piloto lleva más vueltas que la ventana real
+- [x] Mostrar ambas columnas (FP window y Real window) con diferencia visual cuando divergen significativamente (>2 vueltas)
 
 ---
 

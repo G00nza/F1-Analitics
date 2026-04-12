@@ -2,6 +2,7 @@ package com.f1analytics.api
 
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.LiveEventView
+import com.f1analytics.api.views.LiveStrategyTrackerView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.views.PreRaceStrategyView
 import com.f1analytics.api.views.ReplayEventView
@@ -37,6 +38,7 @@ fun Route.liveSessionRoutes(
     racePaceView: RacePaceView,
     sectorComparisonView: SectorComparisonView,
     preRaceStrategyView: PreRaceStrategyView,
+    liveStrategyTrackerView: LiveStrategyTrackerView,
     isSessionActive: () -> Boolean = { false }
 ) {
     get("/ping") {
@@ -102,5 +104,9 @@ fun Route.liveSessionRoutes(
 
     get("/api/races/{raceKey}/strategy/preview") {
         preRaceStrategyView.handle(call)
+    }
+
+    get("/api/sessions/{sessionKey}/strategy/tracker") {
+        liveStrategyTrackerView.handle(call)
     }
 }
