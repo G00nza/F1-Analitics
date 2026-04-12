@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { selectedRaceKey } from '../stores/race.js';
   import LapTimeChart from '../components/charts/LapTimeChart.svelte';
   import DegradationChart from '../components/charts/DegradationChart.svelte';
   import PositionChart from '../components/charts/PositionChart.svelte';
@@ -40,9 +41,18 @@
   let error = null;
   let analysisTab = 'charts';
 
-  onMount(async () => {
+  // Re-load weekend sessions whenever the selected race changes
+  $: loadWeekend($selectedRaceKey);
+
+  async function loadWeekend(raceKey) {
+    weekend = null;
+    sessions = [];
+    selectedKey = null;
+    chartsData = null;
+    error = null;
     try {
-      const res = await fetch('/api/weekend');
+      const q = raceKey ? `?raceKey=${raceKey}` : '';
+      const res = await fetch(`/api/weekend${q}`);
       if (!res.ok) throw new Error(res.statusText);
       weekend = await res.json();
       sessions = weekend.sessions ?? [];
@@ -53,7 +63,7 @@
     } catch (e) {
       error = 'Failed to load weekend info';
     }
-  });
+  }
 
   async function loadSession(key) {
     loading = true;

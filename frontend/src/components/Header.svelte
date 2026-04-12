@@ -1,5 +1,7 @@
 <script>
+  import { onMount } from 'svelte';
   import { sessionState, connectionStatus, nextSession } from '../stores/session.js';
+  import { selectedRaceKey } from '../stores/race.js';
   import { formatTimeRemaining, windDirectionLabel } from '../lib/f1utils.js';
 
   $: session  = $sessionState;
@@ -9,12 +11,50 @@
   $: isEnded  = status === 'finished' || status === 'ended' || status === 'aborted';
   $: timeStr  = formatTimeRemaining(session?.timeRemainingMs);
   $: hotTrack = (weather?.trackTemp ?? 0) > 50;
+
+  // Race selector
+  let meetings = [];
+
+  onMount(async () => {
+    const year = new Date().getFullYear();
+    try {
+      const res = await fetch(`/api/meetings?year=${year}`);
+      if (res.ok) meetings = await res.json();
+    } catch (_) {}
+  });
+
+  function shortName(name) {
+    return name
+      .replace(' Grand Prix', ' GP')
+      .replace(' Grand-Prix', ' GP');
+  }
+
+  function handleRaceChange(e) {
+    const val = e.target.value;
+    selectedRaceKey.set(val ? Number(val) : null);
+  }
 </script>
 
 <header>
-  <!-- Row 1: brand / session / live indicator -->
+  <!-- Row 1: brand / race selector / session / live indicator -->
   <div class="row row-main">
-    <span class="brand">F1 Analytics</span>
+    <div class="brand-group">
+      <span class="brand">F1 Analytics</span>
+      {#if meetings.length > 0}
+        <select
+          class="race-select"
+          value={$selectedRaceKey ?? ''}
+          on:change={handleRaceChange}
+        >
+          <option value="">— Current —</option>
+          {#each meetings as m}
+            <option value={m.key}>
+              {m.round != null ? `R${m.round} · ` : ''}{shortName(m.name)}
+            </option>
+          {/each}
+        </select>
+      {/if}
+    </div>
 
     <div class="session-badge">
       {#if session}
@@ -105,11 +145,38 @@
     justify-content: space-between;
   }
 
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
   .brand {
     font-size: 1.1rem;
     font-weight: bold;
     letter-spacing: 0.05em;
     white-space: nowrap;
+  }
+
+  .race-select {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+    border: 1px solid #383848;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    max-width: 200px;
+    letter-spacing: 0.02em;
+  }
+
+  .race-select:focus { outline: 1px solid #E8002D; }
+
+  .race-select option {
+    background: #1F1F2E;
+    color: var(--text-primary);
   }
 
   .session-badge {

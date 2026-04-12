@@ -18,6 +18,8 @@ data class MeetingDto(
     val name: String,
     val circuit: String,
     val country: String?,
+    val year: Int,
+    val round: Int?,
     val dateStart: String?,
     val sessions: List<MeetingSessionDto>
 )
@@ -59,12 +61,14 @@ class MeetingsView(
         return races.map { race ->
             val sessions = sessionRepo.findByRace(race.key)
             MeetingDto(
-                key      = race.key,
-                name     = race.name,
-                circuit  = race.circuit,
-                country  = race.country,
+                key       = race.key,
+                name      = race.name,
+                circuit   = race.circuit,
+                country   = race.country,
+                year      = race.year,
+                round     = race.round,
                 dateStart = race.dateStart,
-                sessions = sessions.map { it.toMeetingSessionDto() }
+                sessions  = sessions.map { it.toMeetingSessionDto() }
             )
         }
     }

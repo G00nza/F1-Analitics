@@ -6,6 +6,7 @@ import com.f1analytics.core.domain.model.Race
 import com.f1analytics.core.domain.model.Session
 import com.f1analytics.core.domain.port.RaceRepository
 import com.f1analytics.core.domain.port.SessionRepository
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 
@@ -15,7 +16,11 @@ class WeekendView(
 ) {
 
     suspend fun handle(call: ApplicationCall) {
-        val currentRace = raceRepository.findCurrent()!!
+        val raceKey = call.request.queryParameters["raceKey"]?.toIntOrNull()
+        val currentRace = if (raceKey != null)
+            raceRepository.findByKey(raceKey) ?: return call.respond(HttpStatusCode.NotFound)
+        else
+            raceRepository.findCurrent() ?: return call.respond(HttpStatusCode.NotFound)
         val sessions = sessionRepository.findByRace(currentRace.key)
 
         call.respond(buildWeekendDto(currentRace, sessions))

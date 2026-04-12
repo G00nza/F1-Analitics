@@ -1,6 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
   import { formatLapTime, teamColor } from '../../lib/f1utils.js';
+  import { selectedRaceKey } from '../../stores/race.js';
 
   const SESSION_LABELS = {
     FP1: 'FP1', FP2: 'FP2', FP3: 'FP3',
@@ -11,9 +11,13 @@
   let loading = true;
   let error = null;
 
-  onMount(async () => {
+  $: fetchData($selectedRaceKey);
+
+  async function fetchData(raceKey) {
+    loading = true; error = null; data = null;
     try {
-      const res = await fetch('/api/weekend/summary');
+      const q = raceKey ? `?raceKey=${raceKey}` : '';
+      const res = await fetch(`/api/weekend/summary${q}`);
       if (!res.ok) throw new Error(res.statusText);
       data = await res.json();
     } catch (e) {
@@ -21,7 +25,7 @@
     } finally {
       loading = false;
     }
-  });
+  }
 
   function fmtLap(ms) {
     return ms != null ? formatLapTime(ms) : '—';

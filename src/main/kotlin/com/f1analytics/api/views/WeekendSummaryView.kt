@@ -12,8 +12,11 @@ class WeekendSummaryView(
 ) {
 
     suspend fun handle(call: ApplicationCall) {
-        val race = raceRepository.findCurrent()
-            ?: return call.respond(HttpStatusCode.NotFound)
+        val raceKey = call.request.queryParameters["raceKey"]?.toIntOrNull()
+        val race = if (raceKey != null)
+            raceRepository.findByKey(raceKey) ?: return call.respond(HttpStatusCode.NotFound)
+        else
+            raceRepository.findCurrent() ?: return call.respond(HttpStatusCode.NotFound)
 
         call.respond(buildWeekendSummaryUseCase.execute(race))
     }
