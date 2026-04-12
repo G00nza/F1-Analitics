@@ -17,7 +17,7 @@ Antes de la carrera, predecir las estrategias más probables.
 
 **Inputs:**
 - Datos de degradación de FP2 y FP3
-- Compuesto de qualifying usado (obliga a empezar con ese compuesto)
+- Compuesto de ruedas sin usar 
 - Número de vueltas del circuito
 - Historial de safety cars en ese circuito (épocas previas, si hay datos)
 
@@ -37,9 +37,9 @@ Warning: High track temp expected → increased degradation (+15% estimate)
 ```
 
 **Criterios de aceptación:**
-- [ ] Calculado a partir de la tasa de degradación de EP-02.3
-- [ ] Considerar el compuesto de Q (piloto está obligado a usarlo si calificó en Q2+)
-- [ ] Mostrar ventana óptima de pit stop como rango de vueltas
+- [x] Calculado a partir de la tasa de degradación de EP-02.3
+- [x] Considerar los compuestos disponibles
+- [x] Mostrar ventana óptima de pit stop como rango de vueltas
 
 ---
 
@@ -50,29 +50,37 @@ Durante la carrera, mostrar la estrategia de cada piloto en tiempo real.
 ```
 Strategy Tracker — Bahrain GP 2024 | LAP 23/57
 
-Driver | Pos | Compound | Stint laps | Predicted pit | Status
-VER    |  1  | HARD ●   |    +8      | Lap 35-40     | On track
-HAM    |  2  | MEDIUM ● |   +13      | Lap 28-32     | On track
-LEC    |  3  | SOFT ●   |   +23      | OVERDUE ⚠️    | On track  (pitting next lap?)
-SAI    |  P  | —        |    —       | —             | IN PIT    (stop 1, lap 22)
+Driver | Pos | Compound | Stint laps | FP window  | Real window | Status
+VER    |  1  | HARD ●   |    +8      | Lap 35-40  | Lap 33-38   | On track
+HAM    |  2  | MEDIUM ● |   +13      | Lap 28-32  | Lap 27-31   | On track
+LEC    |  3  | SOFT ●   |   +23      | Lap 18-22  | OVERDUE ⚠️  | On track  (pitting next lap?)
+SAI    |  P  | —        |    —       | —          | —           | IN PIT    (stop 1, lap 22)
 ...
 
 ● SOFT=red  ● MEDIUM=yellow  ● HARD=white  ● INTER=green  ● WET=blue
 ```
+- **FP window**: ventana teórica calculada a partir de la degradación observada en FP2/FP3
+- **Real window**: ventana ajustada en tiempo real usando la degradación actual del stint (delta de tiempos de vuelta reales vs baseline)
 
 **Criterios de aceptación:**
 - [ ] Integrado como pestaña adicional del live viewer (EP-00)
 - [ ] Actualización en tiempo real con los datos de stints de OpenF1
-- [ ] Marcar "OVERDUE" cuando el piloto lleva más vueltas que la ventana óptima
+- [ ] Marcar "OVERDUE" cuando el piloto lleva más vueltas que la ventana real
+- [ ] Mostrar ambas columnas (FP window y Real window) con diferencia visual cuando divergen significativamente (>2 vueltas)
 
 ---
 
 ### F-03.3: Undercut/Overcut detector
-Detectar y alertar cuando hay un undercut o overcut en curso.
+Detectar y alertar cuando hay un undercut o overcut en curso, solo sobre los conductores que el usuario quiere monitorear.
 
-**Detección:**
-- **Undercut en curso**: piloto A entra a boxes mientras piloto B (delante) sigue en pista con neumático >15 vueltas de antigüedad
-- **Overcut exitoso**: piloto que se queda en pista mientras el rival entra, y termina delante
+**Detección (event-driven + poll selectivo):**
+- **Undercut**: se dispara cuando un piloto monitorizado (o su rival directo) entra a boxes → revisar rivales en pista dentro de un gap configurable
+- **Overcut en curso**: poll periódico solo sobre pares adyacentes en posición donde ambos están monitorizados, el gap es < umbral y uno tiene neumático >15 vueltas
+
+**Control de conductores a monitorizar:**
+- **Favoritos globales**: lista configurada en settings, persistente entre sesiones
+- **Override por carrera**: selección editable en la UI antes de la carrera, precargada con los favoritos globales
+- **Control durante la carrera**: el usuario puede agregar o quitar conductores del monitoreo en cualquier momento sin interrumpir la sesión activa
 
 **Alert:**
 ```
@@ -84,8 +92,11 @@ Predicted outcome: NOR P3 after pit stop window closes
 ```
 
 **Criterios de aceptación:**
-- [ ] Alerta visual en el live viewer cuando se detecta un undercut
-- [ ] Post-carrera: listar todos los undercuts/overcuts detectados con resultado
+- [ ] Configuración global de favoritos persistente en settings
+- [ ] Selector de conductores editable antes y durante la carrera
+- [ ] El detector solo actúa sobre pares donde al menos un conductor está en la lista activa
+- [ ] Alerta visual en el live viewer cuando se detecta un undercut o overcut en curso
+- [ ] Post-carrera: listar todos los undercuts/overcuts detectados (solo de conductores monitorizados) con resultado
 
 ---
 

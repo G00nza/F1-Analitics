@@ -62,27 +62,6 @@ P16  ZHO  1:12.001  +1.731
 - [ ] Cálculo de gap como porcentaje y como tiempo absoluto
 - [ ] Comparativa con misma carrera año anterior (si hay datos en OpenF1)
 
----
-
-### F-04.4: Correlación qualifying → carrera
-Dado el resultado de qualifying, ¿quién es favorito para ganar?
-
-**Basado en datos de la temporada en curso:**
-- Win rate desde P1 en este circuito (datos históricos disponibles)
-- Win rate desde P1 en la temporada actual (general)
-- Historial del piloto en pole en este circuito
-
-**Output:**
-```
-Pole → Race correlation — Monaco GP (last 5 editions)
-Pole winner also won race: 4/5 (80%)
-Most likely scenarios:
-  LEC (pole) wins race: 65% (strong at Monaco, pole crucial here)
-  VER (P2) wins: 25% (overcut opportunity viable)
-```
-
-**Criterios de aceptación:**
-- [ ] Basado solo en datos OpenF1 disponibles (2023+) si no hay histórico
 
 ---
 
@@ -90,5 +69,4 @@ Most likely scenarios:
 - F-04.1 Resultado qualifying: 1 día
 - F-04.2 Mejora en Q: 1 día
 - F-04.3 Gap analysis: 1 día
-- F-04.4 Correlación Q→R: 1 día
 - **Total**: ~4 días

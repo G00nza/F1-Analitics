@@ -1,7 +1,9 @@
-must
-
-
 backlog
+    comparativa telemetria de vueltas entre conductores (ver lap 12 vs ver lap 13 o ver lap 13 nor lap 13)
+    en los graficos, el tag cuando se hace hover esta hecho pija
+    incluir en las estragias:
+        compuestos que ningun equipo haya probado durante un fin de semana
+        sprint weekends usar datos de todas las sesiones disponibles
     identificar en FP qualy laps de race simulations para progresion de tiempos
     posicion virtual con pit windows
     drivers to watch

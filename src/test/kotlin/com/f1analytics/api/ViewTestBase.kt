@@ -1,11 +1,13 @@
 package com.f1analytics.api
 
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildPreRaceStrategyUseCase
 import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.PreRaceStrategyView
 import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.LatestSessionView
@@ -262,6 +264,16 @@ abstract class ViewTestBase {
                     BuildSectorComparisonUseCase(
                         ExposedLapRepository(db),
                         ExposedSessionDriverRepository(db),
+                    )
+                ),
+                preRaceStrategyView = PreRaceStrategyView(
+                    ExposedRaceRepository(db),
+                    BuildPreRaceStrategyUseCase(
+                        ExposedSessionRepository(db),
+                        ExposedStintRepository(db),
+                        ExposedLapRepository(db),
+                        ExposedSessionDriverRepository(db),
+                        ExposedRaceControlRepository(db),
                     )
                 ),
             )
