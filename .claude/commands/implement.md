@@ -59,7 +59,7 @@ Follow project conventions:
 
 Once all tests pass, update `planning/epics/<EPIC-ID>-*.md`:
 - Change each implemented `- [ ]` criterion to `- [x]`
-- If **all** criteria in the feature are now checked, the feature is considered done and update the global status
+- If **all** criteria in the feature are now checked, the feature is considered done, update the global status
 
 ### 6. Commit
 
