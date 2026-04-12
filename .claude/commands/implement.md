@@ -64,6 +64,6 @@ Once all tests pass, update `planning/epics/<EPIC-ID>-*.md`:
 ### 6. Commit
 
 Create a single commit with:
-- All production code, tests, and the updated epic file
+- All production code, tests, and the updated epic file, run the command `git add .` to be sure everything was included
 - Message format: `<EPIC-ID>: <short description of what was implemented>`
 - Do **not** add Claude as co-author
