@@ -10,6 +10,7 @@
   import TyreDegradationPanel from '../components/weekend/TyreDegradationPanel.svelte';
   import RacePacePanel from '../components/weekend/RacePacePanel.svelte';
   import SectorComparisonPanel from '../components/weekend/SectorComparisonPanel.svelte';
+  import StrategyPanel from '../components/weekend/StrategyPanel.svelte';
 
   const CHART_COMPONENTS = {
     lapTimes: LapTimeChart,
@@ -31,6 +32,7 @@
     { id: 'degradation', label: 'Tyre Degradation' },
     { id: 'racepace',    label: 'Race Pace' },
     { id: 'sectors',     label: 'Sector Comparison' },
+    { id: 'strategy',    label: 'Strategy' },
   ];
 
   let weekend = null;
@@ -214,6 +216,10 @@
   <!-- ── Sector Comparison ─────────────────────────────────────────────── -->
   {:else if analysisTab === 'sectors'}
     <SectorComparisonPanel {sessions} />
+
+  <!-- ── Strategy ──────────────────────────────────────────────────────── -->
+  {:else if analysisTab === 'strategy'}
+    <StrategyPanel {sessions} raceKey={$selectedRaceKey} />
 
   {/if}
 </div>
