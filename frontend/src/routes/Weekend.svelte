@@ -4,6 +4,11 @@
   import DegradationChart from '../components/charts/DegradationChart.svelte';
   import PositionChart from '../components/charts/PositionChart.svelte';
   import GapChart from '../components/charts/GapChart.svelte';
+  import WeekendSummaryPanel from '../components/weekend/WeekendSummaryPanel.svelte';
+  import LapProgressionPanel from '../components/weekend/LapProgressionPanel.svelte';
+  import TyreDegradationPanel from '../components/weekend/TyreDegradationPanel.svelte';
+  import RacePacePanel from '../components/weekend/RacePacePanel.svelte';
+  import SectorComparisonPanel from '../components/weekend/SectorComparisonPanel.svelte';
 
   const CHART_COMPONENTS = {
     lapTimes: LapTimeChart,
@@ -18,12 +23,22 @@
     SPRINT: 'Sprint', SPRINT_QUALIFYING: 'Sprint Qualifying',
   };
 
+  const ANALYSIS_TABS = [
+    { id: 'charts',      label: 'Session Charts' },
+    { id: 'summary',     label: 'Weekend Summary' },
+    { id: 'progression', label: 'Lap Progression' },
+    { id: 'degradation', label: 'Tyre Degradation' },
+    { id: 'racepace',    label: 'Race Pace' },
+    { id: 'sectors',     label: 'Sector Comparison' },
+  ];
+
   let weekend = null;
   let sessions = [];
   let selectedKey = null;
   let chartsData = null;
   let loading = false;
   let error = null;
+  let analysisTab = 'charts';
 
   onMount(async () => {
     try {
@@ -95,73 +110,101 @@
     </div>
   {/if}
 
-  <!-- Session tabs -->
-  <div class="session-tabs">
-    {#each sessions as s}
-      <button class:active={s.key === selectedKey} on:click={() => selectSession(s.key)}>
-        {SESSION_LABELS[s.type] ?? s.name}
+  <!-- Analysis type tabs -->
+  <div class="analysis-tabs">
+    {#each ANALYSIS_TABS as tab}
+      <button class:active={analysisTab === tab.id} on:click={() => analysisTab = tab.id}>
+        {tab.label}
       </button>
     {/each}
   </div>
 
-  {#if loading}
-    <div class="state-msg">Loading…</div>
-  {:else if error}
-    <div class="state-msg error">{error}</div>
-  {:else if chartsData}
+  <!-- ── Session Charts ──────────────────────────────────────────────────── -->
+  {#if analysisTab === 'charts'}
+    <div class="session-tabs">
+      {#each sessions as s}
+        <button class:active={s.key === selectedKey} on:click={() => selectSession(s.key)}>
+          {SESSION_LABELS[s.type] ?? s.name}
+        </button>
+      {/each}
+    </div>
 
-    <!-- Best lap times table -->
-    <section class="section">
-      <h3 class="section-title">Best Lap Times</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Pos</th>
-              <th class="sortable" on:click={() => sortBy('driverCode')}>
-                Driver {sortCol === 'driverCode' ? (sortAsc ? '↑' : '↓') : ''}
-              </th>
-              <th class="sortable active-sort" on:click={() => sortBy('lapTimeMs')}>
-                Best Lap {sortCol === 'lapTimeMs' ? (sortAsc ? '↑' : '↓') : ''}
-              </th>
-              <th>Compound</th>
-              <th class="sortable" on:click={() => sortBy('lapNumber')}>
-                Lap # {sortCol === 'lapNumber' ? (sortAsc ? '↑' : '↓') : ''}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each sortedBestLaps as lap, i}
-              <tr>
-                <td class="dim">{i + 1}</td>
-                <td>
-                  <span class="driver-dot" style="background:{lap.teamColor}"></span>
-                  {lap.driverCode}
-                </td>
-                <td class="mono">{fmtLap(lap.lapTimeMs)}</td>
-                <td>
-                  <span class="compound {(lap.compound ?? '').toLowerCase()}">
-                    {lap.compound ?? '--'}
-                  </span>
-                </td>
-                <td class="mono dim">{lap.lapNumber}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Charts driven by backend -->
-    {#each chartsData.charts as chart}
+    {#if loading}
+      <div class="state-msg">Loading…</div>
+    {:else if error}
+      <div class="state-msg error">{error}</div>
+    {:else if chartsData}
       <section class="section">
-        <h3 class="section-title">{chart.title}</h3>
-        <svelte:component this={CHART_COMPONENTS[chart.type]} datasets={chart.datasets} />
+        <h3 class="section-title">Best Lap Times</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th class="sortable" on:click={() => sortBy('driverCode')}>
+                  Driver {sortCol === 'driverCode' ? (sortAsc ? '↑' : '↓') : ''}
+                </th>
+                <th class="sortable active-sort" on:click={() => sortBy('lapTimeMs')}>
+                  Best Lap {sortCol === 'lapTimeMs' ? (sortAsc ? '↑' : '↓') : ''}
+                </th>
+                <th>Compound</th>
+                <th class="sortable" on:click={() => sortBy('lapNumber')}>
+                  Lap # {sortCol === 'lapNumber' ? (sortAsc ? '↑' : '↓') : ''}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each sortedBestLaps as lap, i}
+                <tr>
+                  <td class="dim">{i + 1}</td>
+                  <td>
+                    <span class="driver-dot" style="background:{lap.teamColor}"></span>
+                    {lap.driverCode}
+                  </td>
+                  <td class="mono">{fmtLap(lap.lapTimeMs)}</td>
+                  <td>
+                    <span class="compound {(lap.compound ?? '').toLowerCase()}">
+                      {lap.compound ?? '--'}
+                    </span>
+                  </td>
+                  <td class="mono dim">{lap.lapNumber}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       </section>
-    {/each}
 
-  {:else}
-    <div class="state-msg">No data available for this session.</div>
+      {#each chartsData.charts as chart}
+        <section class="section">
+          <h3 class="section-title">{chart.title}</h3>
+          <svelte:component this={CHART_COMPONENTS[chart.type]} datasets={chart.datasets} />
+        </section>
+      {/each}
+    {:else}
+      <div class="state-msg">No data available for this session.</div>
+    {/if}
+
+  <!-- ── Weekend Summary ────────────────────────────────────────────────── -->
+  {:else if analysisTab === 'summary'}
+    <WeekendSummaryPanel />
+
+  <!-- ── Lap Time Progression ───────────────────────────────────────────── -->
+  {:else if analysisTab === 'progression'}
+    <LapProgressionPanel />
+
+  <!-- ── Tyre Degradation ───────────────────────────────────────────────── -->
+  {:else if analysisTab === 'degradation'}
+    <TyreDegradationPanel {sessions} />
+
+  <!-- ── Race Pace ─────────────────────────────────────────────────────── -->
+  {:else if analysisTab === 'racepace'}
+    <RacePacePanel {sessions} />
+
+  <!-- ── Sector Comparison ─────────────────────────────────────────────── -->
+  {:else if analysisTab === 'sectors'}
+    <SectorComparisonPanel {sessions} />
+
   {/if}
 </div>
 
@@ -189,7 +232,38 @@
     color: var(--text-secondary);
   }
 
-  /* Session tabs */
+  /* Analysis type tabs */
+  .analysis-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #2a2a3a;
+  }
+
+  .analysis-tabs button {
+    padding: 0.3rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid #2a2a3a;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .analysis-tabs button:hover { color: var(--text-primary); border-color: #555; }
+
+  .analysis-tabs button.active {
+    background: #E8002D;
+    color: #fff;
+    border-color: #E8002D;
+  }
+
+  /* Session tabs (charts view only) */
   .session-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -223,7 +297,6 @@
     color: var(--text-secondary);
     text-align: center;
   }
-
   .state-msg.error { color: #FF5252; }
 
   /* Sections */
@@ -299,5 +372,7 @@
   /* Mobile: bottom nav padding */
   @media (max-width: 599px) {
     .weekend { padding: 1rem 1rem 5rem; }
+    .analysis-tabs { gap: 0.25rem; }
+    .analysis-tabs button { font-size: 0.68rem; padding: 0.28rem 0.6rem; }
   }
 </style>
