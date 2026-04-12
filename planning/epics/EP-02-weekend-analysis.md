@@ -125,8 +125,8 @@ Rank | Team      | Avg lap (adj) | Gap to best
 ```
 
 **Criterios de aceptación:**
-- [ ] Advertencia clara: "estimado basado en FP, condiciones pueden variar"
-- [ ] Excluir vueltas con SC, banderas amarillas
+- [x] Advertencia clara: "estimado basado en FP, condiciones pueden variar"
+- [x] Excluir vueltas con SC, banderas amarillas
 
 ---
 

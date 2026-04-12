@@ -1,10 +1,12 @@
 package com.f1analytics.api
 
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.LatestSessionView
 import com.f1analytics.api.views.TyreDegradationView
@@ -29,6 +31,7 @@ import com.f1analytics.data.db.repository.ExposedSessionRepository
 import com.f1analytics.data.db.repository.ExposedStintRepository
 import com.f1analytics.data.db.repository.ExposedWeatherRepository
 import com.f1analytics.data.db.tables.LapsTable
+import com.f1analytics.data.db.tables.RaceControlMessagesTable
 import com.f1analytics.data.db.tables.RacesTable
 import com.f1analytics.data.db.tables.SessionDriversTable
 import com.f1analytics.data.db.tables.SessionsTable
@@ -154,6 +157,22 @@ abstract class ViewTestBase {
         }
     }
 
+    protected fun insertRaceControlMessage(
+        sessionKey: Int,
+        lapNumber: Int? = null,
+        flag: String? = null,
+        message: String = "",
+        timestamp: Instant = Instant.parse("2026-03-16T15:00:00Z"),
+    ) = transaction(db) {
+        RaceControlMessagesTable.insert {
+            it[RaceControlMessagesTable.sessionKey] = sessionKey
+            it[RaceControlMessagesTable.timestamp]  = timestamp
+            it[RaceControlMessagesTable.message]    = message
+            it[RaceControlMessagesTable.flag]       = flag
+            it[RaceControlMessagesTable.lapNumber]  = lapNumber
+        }
+    }
+
     protected fun insertSessionDriver(
         sessionKey: Int,
         number: String,
@@ -226,6 +245,17 @@ abstract class ViewTestBase {
                         ExposedStintRepository(db),
                         ExposedLapRepository(db),
                         ExposedSessionDriverRepository(db),
+                        ExposedRaceControlRepository(db),
+                    )
+                ),
+                racePaceView = RacePaceView(
+                    BuildRacePaceUseCase(
+                        BuildTyreDegradationUseCase(
+                            ExposedStintRepository(db),
+                            ExposedLapRepository(db),
+                            ExposedSessionDriverRepository(db),
+                            ExposedRaceControlRepository(db),
+                        )
                     )
                 ),
                 sectorComparisonView = SectorComparisonView(

@@ -7,6 +7,7 @@ import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionChartsView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.WeekendSummaryView
@@ -32,6 +33,7 @@ fun Route.liveSessionRoutes(
     weekendSummaryView: WeekendSummaryView,
     lapTimeProgressionView: LapTimeProgressionView,
     tyreDegradationView: TyreDegradationView,
+    racePaceView: RacePaceView,
     sectorComparisonView: SectorComparisonView,
     isSessionActive: () -> Boolean = { false }
 ) {
@@ -86,6 +88,10 @@ fun Route.liveSessionRoutes(
 
     get("/api/sessions/{sessionKey}/tyre-degradation") {
         tyreDegradationView.handle(call)
+    }
+
+    get("/api/sessions/{sessionKey}/race-pace") {
+        racePaceView.handle(call)
     }
 
     get("/api/sessions/{sessionKeyA}/sector-comparison/{sessionKeyB}") {

@@ -8,10 +8,12 @@ import com.f1analytics.api.views.ReplayEventView
 import com.f1analytics.api.views.SessionStateView
 import com.f1analytics.api.views.MeetingsView
 import com.f1analytics.api.usecase.BuildLapTimeProgressionUseCase
+import com.f1analytics.api.usecase.BuildRacePaceUseCase
 import com.f1analytics.api.usecase.BuildSectorComparisonUseCase
 import com.f1analytics.api.usecase.BuildTyreDegradationUseCase
 import com.f1analytics.api.usecase.BuildWeekendSummaryUseCase
 import com.f1analytics.api.views.LapTimeProgressionView
+import com.f1analytics.api.views.RacePaceView
 import com.f1analytics.api.views.SectorComparisonView
 import com.f1analytics.api.views.TyreDegradationView
 import com.f1analytics.api.views.SessionChartsView
@@ -187,7 +189,12 @@ fun startServer(port: Int = DEFAULT_PORT, openBrowser: Boolean = true) { runBloc
                     BuildLapTimeProgressionUseCase(sessionRepo, lapRepo, driverRepo)
                 ),
                 TyreDegradationView(
-                    BuildTyreDegradationUseCase(stintRepo, lapRepo, driverRepo)
+                    BuildTyreDegradationUseCase(stintRepo, lapRepo, driverRepo, raceControlRepo)
+                ),
+                RacePaceView(
+                    BuildRacePaceUseCase(
+                        BuildTyreDegradationUseCase(stintRepo, lapRepo, driverRepo, raceControlRepo)
+                    )
                 ),
                 SectorComparisonView(
                     BuildSectorComparisonUseCase(lapRepo, driverRepo)

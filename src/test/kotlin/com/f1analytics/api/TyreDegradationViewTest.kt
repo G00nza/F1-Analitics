@@ -150,4 +150,66 @@ class TyreDegradationViewTest : ViewTestBase() {
 
         assertEquals("99", dto.longRuns.single().driverCode)
     }
+
+    @Test
+    fun `GET excludes laps whose lap number matches an SC race control message`() = testApp { client ->
+        insertRace()
+        insertSession(key = 9001, raceKey = 1, type = "FP2")
+        insertSessionDriver(sessionKey = 9001, number = "1", code = "VER")
+        // 8-lap stint; lap 4 is under SC → excluded, leaving 7 valid laps (still a long run)
+        insertStint(sessionKey = 9001, driverNumber = "1", stintNumber = 1, lapStart = 1, lapEnd = 8)
+        (1..8).forEach { i -> insertLap(sessionKey = 9001, driverNumber = "1", lapNumber = i, lapTimeMs = 90000) }
+        insertRaceControlMessage(sessionKey = 9001, lapNumber = 4, flag = "SC")
+
+        val dto = client.get("/api/sessions/9001/tyre-degradation").body<TyreDegradationDto>()
+
+        assertEquals(1, dto.longRuns.size)
+        assertEquals(7, dto.longRuns.single().lapCount)
+    }
+
+    @Test
+    fun `GET excludes laps under yellow flag`() = testApp { client ->
+        insertRace()
+        insertSession(key = 9001, raceKey = 1, type = "FP2")
+        insertSessionDriver(sessionKey = 9001, number = "1", code = "VER")
+        insertStint(sessionKey = 9001, driverNumber = "1", stintNumber = 1, lapStart = 1, lapEnd = 8)
+        (1..8).forEach { i -> insertLap(sessionKey = 9001, driverNumber = "1", lapNumber = i, lapTimeMs = 90000) }
+        insertRaceControlMessage(sessionKey = 9001, lapNumber = 3, flag = "YELLOW")
+
+        val dto = client.get("/api/sessions/9001/tyre-degradation").body<TyreDegradationDto>()
+
+        assertEquals(7, dto.longRuns.single().lapCount)
+    }
+
+    @Test
+    fun `GET stint becomes a short run when enough laps are excluded by flags`() = testApp { client ->
+        insertRace()
+        insertSession(key = 9001, raceKey = 1, type = "FP2")
+        insertSessionDriver(sessionKey = 9001, number = "1", code = "VER")
+        // 7-lap stint; 2 laps flagged → 5 valid laps → short run (not > 5)
+        insertStint(sessionKey = 9001, driverNumber = "1", stintNumber = 1, lapStart = 1, lapEnd = 7)
+        (1..7).forEach { i -> insertLap(sessionKey = 9001, driverNumber = "1", lapNumber = i, lapTimeMs = 90000) }
+        insertRaceControlMessage(sessionKey = 9001, lapNumber = 3, flag = "SC")
+        insertRaceControlMessage(sessionKey = 9001, lapNumber = 5, flag = "YELLOW")
+
+        val dto = client.get("/api/sessions/9001/tyre-degradation").body<TyreDegradationDto>()
+
+        assertTrue(dto.longRuns.isEmpty())
+        assertEquals(1, dto.shortRuns.size)
+        assertEquals(5, dto.shortRuns.single().lapCount)
+    }
+
+    @Test
+    fun `GET avgLapMs is the mean of valid lap times in the long run`() = testApp { client ->
+        insertRace()
+        insertSession(key = 9001, raceKey = 1, type = "FP2")
+        insertSessionDriver(sessionKey = 9001, number = "1", code = "VER")
+        // 6 laps: 90000, 90200, 90400, 90600, 90800, 91000 → avg = 90500
+        insertStint(sessionKey = 9001, driverNumber = "1", stintNumber = 1, lapStart = 1, lapEnd = 6)
+        (0..5).forEach { i -> insertLap(sessionKey = 9001, driverNumber = "1", lapNumber = i + 1, lapTimeMs = 90000 + i * 200) }
+
+        val dto = client.get("/api/sessions/9001/tyre-degradation").body<TyreDegradationDto>()
+
+        assertEquals(90500, dto.longRuns.single().avgLapMs)
+    }
 }

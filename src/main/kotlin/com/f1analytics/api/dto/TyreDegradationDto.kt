@@ -20,6 +20,7 @@ data class TyreLongRunDto(
     val lapCount: Int,
     val firstLapMs: Int,
     val lastLapMs: Int,
+    val avgLapMs: Int,
     val degPerLapMs: Double
 )
 
